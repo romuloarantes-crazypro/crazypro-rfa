@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CrazyPro — RFA Marketing Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --navy:#1e3a5f;--blue:#2e6da4;--light:#5ba3d9;--pale:#d6eaf8;--pale2:#eaf4fb;
+  --bg:#f0f4f8;--surface:#fff;--panel:#f7f9fc;
+  --border:#dde4ed;--border2:#c8d4e3;
+  --text:#1a2535;--muted:#6b7a95;--dim:#9aa8bf;
+  --green:#16a34a;--red:#dc2626;--amber:#f59e0b;
+  --r:8px;--r2:12px;
+  --sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 4px rgba(30,58,95,.08),0 4px 16px rgba(30,58,95,.06);
+  --shadow-md:0 4px 20px rgba(30,58,95,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+
+/* SIDEBAR */
+#sidebar{width:70px;height:100vh;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;box-shadow:2px 0 12px rgba(30,58,95,.2)}
+.logo-box{width:48px;height:48px;border-radius:10px;overflow:hidden;margin-bottom:10px;cursor:default;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.logo-box img{width:100%;height:100%;object-fit:cover}
+.ni{width:56px;height:56px;border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:.2s;color:rgba(255,255,255,.5);border:none;background:transparent;padding:0}
+.ni:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.9)}
+.ni.active{background:rgba(91,163,217,.3);color:#fff;box-shadow:inset 0 0 0 1px rgba(91,163,217,.4)}
+.ni-icon{font-size:18px;line-height:1}
+.ni-lbl{font-size:8px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;line-height:1;text-align:center}
+.nav-sep{width:38px;height:1px;background:rgba(255,255,255,.1);margin:4px 0}
+.nav-bot{margin-top:auto}
+
+/* SHELL */
+#shell{display:flex;height:100vh;overflow:hidden}
+#content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+#topbar{height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;box-shadow:0 1px 4px rgba(30,58,95,.06)}
+.brand{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-1px}
+.brand .c1{color:var(--navy)}.brand .c2{color:var(--light)}
+.brand-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.tb-div{width:1px;height:24px;background:var(--border)}
+.tb-stat{font-size:12px;color:var(--muted)}
+.tb-stat strong{color:var(--navy)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* MAIN PANELS */
+#panels{display:flex;flex:1;overflow:hidden}
+#left{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--panel)}
+#right{width:320px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+
+/* LEFT PANEL */
+.ph{padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;flex-shrink:0}
+.ph-badge{background:var(--blue);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;margin-left:auto}
+#dropzone{margin:10px;border:2px dashed var(--border2);border-radius:var(--r2);padding:16px 10px;text-align:center;cursor:pointer;transition:.2s;position:relative;background:var(--panel)}
+#dropzone:hover,#dropzone.drag{border-color:var(--blue);background:var(--pale2)}
+#dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+#dropzone .dz-icon{font-size:24px;margin-bottom:4px;opacity:.5}
+#dropzone p{font-size:10px;color:var(--muted);line-height:1.5}
+#dropzone strong{color:var(--blue)}
+.prog{height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:none;margin:0 10px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--navy),var(--light));transition:width .3s}
+.sel-bar{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--panel);border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);flex-shrink:0}
+.sel-bar strong{color:var(--navy)}
+
+/* PHOTO LIST (left) */
+#photoList{flex:1;overflow-y:auto}
+.prow{display:flex;align-items:center;gap:6px;padding:5px 8px;cursor:pointer;border-left:3px solid transparent;border-bottom:1px solid var(--border);transition:.15s}
+.prow:hover{background:var(--panel)}
+.prow.active{background:var(--pale2);border-color:var(--blue)}
+.cb{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;background:#fff;cursor:pointer;transition:.15s}
+.prow.checked .cb{background:var(--blue);border-color:var(--blue);color:#fff}
+.pthumb{width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid var(--border)}
+.pthumb-ph{width:36px;height:36px;border-radius:4px;flex-shrink:0;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border)}
+.pinfo{flex:1;min-width:0}
+.pname{font-size:10px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.pgeo{font-size:9px;margin-top:1px;display:flex;align-items:center;gap:3px}
+.pgeo.yes{color:var(--green)}.pgeo.no{color:var(--dim)}
+.geo-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.geo-dot.yes{background:var(--green)}.geo-dot.no{background:var(--dim)}
+
+/* CENTER: PHOTO GALLERY */
+.gallery-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.gallery-bar-title{font-size:11px;font-weight:600;color:var(--navy)}
+#gallery{flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-content:start}
+.gcard{border-radius:var(--r2);overflow:hidden;background:var(--surface);border:2px solid transparent;cursor:pointer;transition:.2s;box-shadow:var(--shadow)}
+.gcard:hover{border-color:var(--light);box-shadow:var(--shadow-md)}
+.gcard.active{border-color:var(--blue)}
+.gcard.checked{border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,109,164,.15)}
+.gcard-img{width:100%;height:120px;object-fit:cover;display:block;background:var(--panel)}
+.gcard-img-ph{width:100%;height:120px;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:32px}
+.gcard-info{padding:7px 9px}
+.gcard-name{font-size:10px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);font-weight:500}
+.gcard-meta{font-size:9px;color:var(--muted);margin-top:2px}
+.gcard-geo{font-size:9px;color:var(--green);margin-top:1px}
+.gcard-stars{font-size:11px;color:var(--amber);margin-top:2px;letter-spacing:-1px}
+.gcard-check{position:relative}
+.gcard-cb{position:absolute;top:6px;left:6px;width:18px;height:18px;border-radius:4px;background:rgba(255,255,255,.9);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;transition:.15s;font-weight:700}
+.gcard.checked .gcard-cb{background:var(--blue);border-color:var(--blue);color:#fff}
+.gallery-empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--dim)}
+.gallery-empty .ei{font-size:48px;margin-bottom:12px;opacity:.3}
+.gallery-empty p{font-size:12px;line-height:1.7}
+
+/* RIGHT PANEL */
+.form-area{flex:1;overflow-y:auto;padding:14px 14px 36px}
+.rp{display:none}.rp.active{display:block}
+.stitle{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--navy);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--pale)}
+
+/* FORM */
+.fg{margin-bottom:11px}
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px}
+input[type=text],input[type=number],input[type=url],input[type=email],textarea,select{
+  width:100%;padding:8px 10px;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);
+  color:var(--text);font-family:var(--sans);font-size:12px;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,109,164,.1)}
+textarea{resize:vertical;min-height:60px;line-height:1.5}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+
+/* TAGS INPUT */
+.tags-wrap{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:6px 8px;min-height:42px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;cursor:text;transition:.2s}
+.tags-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,109,164,.1)}
+.tag-item{background:var(--pale);color:var(--navy);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.tag-item .tag-x{cursor:pointer;color:var(--muted);font-size:13px;line-height:1;font-weight:700}
+.tag-item .tag-x:hover{color:var(--red)}
+.tags-input{border:none;outline:none;font-size:12px;background:transparent;min-width:100px;padding:2px 0;font-family:var(--sans);color:var(--text)}
+.tags-hint{font-size:10px;color:var(--dim);margin-top:3px}
+
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--blue);border-top:none;border-radius:0 0 var(--r) var(--r);z-index:500;max-height:150px;overflow-y:auto;box-shadow:var(--shadow-md)}
+.ac-item{padding:7px 10px;font-size:12px;cursor:pointer;transition:.15s;border-bottom:1px solid var(--border)}
+.ac-item:hover{background:var(--pale);color:var(--navy)}
+
+/* CEP */
+.cep-row{display:flex;gap:6px}
+.cep-row input{flex:1}
+.cep-status{font-size:10px;margin-top:3px;color:var(--muted);min-height:14px}
+
+/* MINI MAP */
+#minimap{height:160px;border-radius:var(--r);overflow:hidden;border:1.5px solid var(--border);margin-bottom:8px}
+
+/* STARS (compact) */
+.stars-compact{display:flex;align-items:center;gap:3px;margin-bottom:10px}
+.sc-star{font-size:22px;cursor:pointer;transition:.1s;color:var(--dim);line-height:1;user-select:none}
+.sc-star.on{color:var(--amber)}
+.sc-label{font-size:11px;color:var(--muted);margin-left:6px}
+
+/* SOCIAL ROW */
+.social-row{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.social-row select{width:90px;flex-shrink:0;padding:6px 4px;font-size:11px}
+.social-row input{flex:1}
+.social-row .rm-btn{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:0 2px}
+.social-row .rm-btn:hover{color:var(--red)}
+
+/* IMPORT BTN */
+.import-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--panel);border:1.5px dashed var(--border2);border-radius:var(--r);cursor:pointer;font-size:11px;color:var(--muted);transition:.2s;position:relative;width:100%;margin-top:8px}
+.import-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--pale2)}
+.import-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+
+/* BUTTONS */
+.btn{padding:8px 14px;border-radius:var(--r);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.2s;display:inline-flex;align-items:center;gap:5px}
+.btn-navy{background:var(--navy);color:#fff}.btn-navy:hover{background:#162d4a;transform:translateY(-1px)}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{background:#255e8f;transform:translateY(-1px)}
+.btn-light{background:var(--pale);color:var(--navy);border:1.5px solid var(--light)}.btn-light:hover{background:#c2dff4}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--border2);background:var(--panel)}
+.btn-danger{background:transparent;color:var(--red);border:1.5px solid #fca5a5}.btn-danger:hover{background:#fee2e2}
+.btn-sm{padding:5px 9px;font-size:11px}
+.btn-full{width:100%;justify-content:center}
+
+/* PROCESS BUTTON */
+.btn-process{width:100%;padding:14px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;border:none;border-radius:var(--r2);font-size:14px;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(46,109,164,.3);letter-spacing:.3px;margin-top:14px}
+.btn-process:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(46,109,164,.45)}
+.btn-process:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* QUALITY */
+.qual-row{display:flex;align-items:center;gap:8px}
+.qual-row input[type=range]{flex:1;accent-color:var(--blue)}
+.qual-val{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:600;min-width:28px;text-align:right}
+
+/* OUTDIR */
+.outdir-box{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:11px;font-family:var(--mono);color:var(--muted);word-break:break-all;min-height:34px;margin-bottom:8px}
+
+/* RESULTS */
+.res-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-top:12px}
+.res-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.res-item:last-child{border-bottom:none}
+
+/* MODEL CARDS */
+.model-card{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:.2s}
+.model-card:hover{border-color:var(--light);background:var(--pale2)}
+.model-name{font-size:12px;font-weight:600;color:var(--navy)}
+.model-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.model-actions{display:flex;gap:6px;margin-top:8px}
+
+/* SEL SUMMARY */
+.sel-summary{background:var(--pale2);border:1.5px solid var(--light);border-radius:var(--r2);padding:11px 13px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.sel-count-big{font-size:28px;font-weight:700;color:var(--navy);line-height:1;font-family:'Syne',sans-serif}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--navy);color:#fff;padding:10px 18px;border-radius:var(--r);font-size:12px;font-weight:500;transform:translateX(110%);transition:.3s;box-shadow:var(--shadow-md)}
+.toast.show{transform:translateX(0)}
+.toast.ok{border-left:4px solid var(--light)}
+.toast.err{background:#7f1d1d;border-left:4px solid var(--red)}
+
+/* EMPTY */
+.empty{text-align:center;padding:30px 16px;color:var(--dim)}
+.empty .ei{font-size:30px;margin-bottom:8px;opacity:.35}
+.empty p{font-size:11px;line-height:1.6}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--panel)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* LEAFLET */
+.leaflet-popup-content-wrapper{background:#fff;border:1px solid var(--border);border-radius:var(--r);color:var(--text);box-shadow:var(--shadow-md)}
+.leaflet-popup-tip{background:#fff}
+</style>
+</head>
+<body>
+<div id="shell">
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="logo-box" title="CrazyPro — RFA Marketing Digital">
+    <img src="{{ icon }}" alt="RFA">
+  </div>
+  <button class="ni active" onclick="navTo('loc',this)" title="Localização"><span class="ni-icon">📍</span><span class="ni-lbl">Local</span></button>
+  <button class="ni" onclick="navTo('desc',this)" title="Descrições"><span class="ni-icon">📝</span><span class="ni-lbl">Descri&shy;ção</span></button>
+  <button class="ni" onclick="navTo('kw',this)" title="Keywords"><span class="ni-icon">🔑</span><span class="ni-lbl">Keywords</span></button>
+  <button class="ni" onclick="navTo('cat',this)" title="Categorias"><span class="ni-icon">🏷️</span><span class="ni-lbl">Categ.</span></button>
+  <div class="nav-sep"></div>
+  <button class="ni" onclick="navTo('nome',this)" title="Renomear Arquivo"><span class="ni-icon">✏️</span><span class="ni-lbl">Renomear</span></button>
+  <button class="ni" onclick="navTo('export',this)" title="Exportar Imagens"><span class="ni-icon">📤</span><span class="ni-lbl">Export</span></button>
+  <button class="ni" onclick="navTo('save_model',this)" title="Salvar Modelo"><span class="ni-icon">💾</span><span class="ni-lbl">Salvar</span></button>
+  <button class="ni" onclick="navTo('use_model',this)" title="Usar Modelo"><span class="ni-icon">📂</span><span class="ni-lbl">Modelos</span></button>
+  <div class="nav-bot">
+    <button class="ni" onclick="clearAll()" title="Limpar sessão"><span class="ni-icon">🗑️</span><span class="ni-lbl">Limpar</span></button>
+  </div>
+</nav>
+
+<!-- CONTENT -->
+<div id="content">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div><div class="brand"><span class="c1">CRAZY</span><span class="c2">PRO</span></div><div class="brand-sub">RFA Marketing Digital</div></div>
+    <div class="tb-div"></div>
+    <div class="tb-stat"><strong id="hSel">0</strong> sel · <strong id="hTot">0</strong> fotos</div>
+    <div class="tb-right">
+      <button class="btn btn-ghost btn-sm" onclick="selectAll()">☑ Todas</button>
+      <button class="btn btn-ghost btn-sm" onclick="selectNone()">☐ Nenhuma</button>
+      <button class="btn btn-navy btn-sm" onclick="downloadAll()">⬇ ZIP</button>
+    </div>
+  </div>
+
+  <!-- PANELS -->
+  <div id="panels">
+
+    <!-- LEFT: FILE LIST -->
+    <div id="left">
+      <div class="ph">📂 Fotos <span class="ph-badge" id="pcount">0</span></div>
+      <div id="dropzone">
+        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.tiff,.tif,.dng,.nef,.raf,.crw,.raw,.png">
+        <div class="dz-icon">🖼️</div>
+        <p>Arraste ou <strong>clique</strong><br>JPG·DNG·NEF·RAW·TIFF</p>
+      </div>
+      <div class="prog" id="upProg"><div class="prog-fill" id="upFill" style="width:0%"></div></div>
+      <div class="sel-bar">
+        <strong id="selCount">0</strong>&nbsp;/ <span id="totCount">0</span>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto;padding:2px 6px;font-size:9px" onclick="selectAll()">All</button>
+      </div>
+      <div id="photoList"><div class="empty"><div class="ei">📷</div><p>Nenhuma foto.</p></div></div>
+    </div>
+
+    <!-- CENTER: GALLERY -->
+    <div id="center">
+      <div class="gallery-bar">
+        <span class="gallery-bar-title">🖼️ Galeria de Fotos</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:8px" id="galInfo">Importe fotos para começar</span>
+      </div>
+      <div id="gallery">
+        <div class="gallery-empty">
+          <div class="ei">🖼️</div>
+          <p>Nenhuma foto importada ainda.<br>Use o painel esquerdo para importar.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: FORM PANELS -->
+    <div id="right">
+      <div class="form-area">
+
+        <!-- LOCALIZAÇÃO -->
+        <div class="rp active" id="rp-loc">
+          <div class="stitle">📍 Localização</div>
+          <div class="fg">
+            <label>CEP (preenchimento automático)</label>
+            <div class="cep-row">
+              <input type="text" id="cep" placeholder="00000-000" maxlength="9" oninput="maskCep(this)" onblur="buscaCep()">
+              <button class="btn btn-blue btn-sm" onclick="buscaCep()">🔍</button>
+            </div>
+            <div class="cep-status" id="cepStatus"></div>
+          </div>
+          <div class="row2" style="margin-bottom:0">
+            <div class="fg"><label>Logradouro (Rua / Av.)</label><input type="text" id="street" placeholder="Ex: Rua das Flores"></div>
+            <div class="fg"><label>Número</label><input type="text" id="number" placeholder="Ex: 123"></div>
+          </div>
+          <div class="fg"><label>Complemento</label><input type="text" id="complement" placeholder="Ex: Sala 301, Apto 12"></div>
+          <div class="fg"><label>Bairro</label><input type="text" id="neighborhood" placeholder="Ex: Centro"></div>
+          <div class="row2">
+            <div class="fg ac-wrap">
+              <label>Cidade</label>
+              <input type="text" id="city" placeholder="Cidade..." autocomplete="off" oninput="acCity(this.value)">
+              <div class="ac-list" id="cityAc" style="display:none"></div>
+            </div>
+            <div class="fg"><label>Estado</label><input type="text" id="state" placeholder="SP" maxlength="2" style="text-transform:uppercase"></div>
+          </div>
+          <div class="fg"><label>País</label><input type="text" id="country" value="Brasil"></div>
+
+          <div class="stitle" style="margin-top:12px">🗺 Mapa</div>
+          <div id="minimap"></div>
+          <p style="font-size:10px;color:var(--muted);margin-bottom:10px">Clique no mapa para capturar coordenadas</p>
+
+          <div class="row3">
+            <div class="fg"><label>Latitude</label><input type="number" id="lat" step="any" placeholder="-23.55" oninput="updateMinimap()"></div>
+            <div class="fg"><label>Longitude</label><input type="number" id="lon" step="any" placeholder="-46.63" oninput="updateMinimap()"></div>
+            <div class="fg"><label>Alt. m</label><input type="number" id="alt" step="any" placeholder="760"></div>
+          </div>
+          <button class="btn btn-light btn-full" onclick="geocodeFromAddress()">🌐 Obter coordenadas da Web</button>
+        </div>
+
+        <!-- DESCRIÇÕES -->
+        <div class="rp" id="rp-desc">
+          <div class="stitle">📝 Descrições</div>
+
+          <!-- Stars compact -->
+          <div class="fg">
+            <label>Classificação / Rating</label>
+            <div class="stars-compact">
+              <span class="sc-star" id="sc1" onclick="setStars(1)" onmouseover="hoverS(1)" onmouseout="hoverS(0)">★</span>
+              <span class="sc-star" id="sc2" onclick="setStars(2)" onmouseover="hoverS(2)" onmouseout="hoverS(0)">★</span>
+              <span class="sc-star" id="sc3" onclick="setStars(3)" onmouseover="hoverS(3)" onmouseout="hoverS(0)">★</span>
+              <span class="sc-star" id="sc4" onclick="setStars(4)" onmouseover="hoverS(4)" onmouseout="hoverS(0)">★</span>
+              <span class="sc-star" id="sc5" onclick="setStars(5)" onmouseover="hoverS(5)" onmouseout="hoverS(0)">★</span>
+              <span class="sc-label" id="scLabel">Sem classificação</span>
+            </div>
+          </div>
+
+          <div class="fg"><label>Descrição / Sobre a Empresa</label>
+            <textarea id="desc" placeholder="Descreva o negócio, produtos, diferenciais..."></textarea></div>
+          <div class="fg"><label>Fotógrafo / Autor</label>
+            <input type="text" id="artist" placeholder="Nome ou empresa"></div>
+          <div class="fg"><label>Copyright</label>
+            <input type="text" id="copyright" value="© 2026 RFA Marketing Digital — CNPJ: 64.810.923/0001-91 — Todos os direitos reservados"></div>
+          <div class="fg"><label>Data (EXIF)</label>
+            <input type="text" id="date" placeholder="2026:04:30 10:30:00"></div>
+          <div class="fg"><label>Site</label>
+            <input type="url" id="website" placeholder="https://www.empresa.com.br"></div>
+          <div class="row2">
+            <div class="fg"><label>Email</label>
+              <input type="email" id="email" placeholder="contato@empresa.com.br"></div>
+            <div class="fg"><label>Telefone</label>
+              <input type="text" id="phone" placeholder="47 99999-9999"></div>
+          </div>
+
+          <div class="fg">
+            <label>Redes Sociais</label>
+            <div id="socialList"></div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="addSocial()">+ Adicionar rede</button>
+          </div>
+        </div>
+
+        <!-- KEYWORDS -->
+        <div class="rp" id="rp-kw">
+          <div class="stitle">🔑 Keywords / Palavras-chave</div>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">Digite e pressione <strong>Enter</strong> para adicionar cada palavra-chave.</p>
+          <label>Palavras-chave</label>
+          <div class="tags-wrap" id="kwWrap" onclick="document.getElementById('kwInput').focus()">
+            <input type="text" class="tags-input" id="kwInput" placeholder="Digite e pressione Enter..." onkeydown="tagKeydown(event,'kw')">
+          </div>
+          <div class="tags-hint">Ex: fotografia, produto, São Paulo, restaurante...</div>
+
+          <div class="import-btn" style="margin-top:12px">
+            <input type="file" accept=".txt,.xlsx,.xls,.xml" onchange="importKeywords(this)">
+            📥 Importar lista de palavras (.txt, .xlsx, .xml)
+          </div>
+          <div id="kwImportStatus" style="font-size:10px;color:var(--green);margin-top:4px"></div>
+        </div>
+
+        <!-- CATEGORIAS -->
+        <div class="rp" id="rp-cat">
+          <div class="stitle">🏷️ Categorias GMN</div>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            Categorias baseadas no Google Meu Negócio. Digite para filtrar e pressione <strong>Enter</strong> para confirmar.
+          </p>
+          <div class="fg">
+            <label>Categoria Principal</label>
+            <div class="ac-wrap">
+              <input type="text" id="mainCategory" placeholder="Ex: Salão de beleza, Restaurante..." autocomplete="off"
+                oninput="acCategory(this.value,'mainCatAc','mainCategory')"
+                onkeydown="if(event.key==='Enter'){confirmMainCat();event.preventDefault()}">
+              <div class="ac-list" id="mainCatAc" style="display:none"></div>
+            </div>
+            <div id="mainCatConfirmed" style="display:none;margin-top:6px;background:var(--pale);border-radius:var(--r);padding:6px 10px;font-size:12px;color:var(--navy);font-weight:600;align-items:center;gap:8px">
+              <span id="mainCatLabel"></span>
+              <span style="cursor:pointer;color:var(--muted);margin-left:auto" onclick="clearMainCat()">✕</span>
+            </div>
+          </div>
+          <div class="fg">
+            <label>Subcategorias (Categorias Adicionais)</label>
+            <p style="font-size:10px;color:var(--muted);margin-bottom:6px">Digite e pressione <strong>Enter</strong> para adicionar cada subcategoria</p>
+            <div class="ac-wrap">
+              <input type="text" id="catInput" placeholder="Ex: Cabeleireiro, Manicure..."
+                autocomplete="off" style="border:1.5px solid var(--border);border-radius:var(--r);padding:7px 10px;width:100%;font-size:12px"
+                oninput="acCategory(this.value,'subCatAc','catInput')"
+                onkeydown="if(event.key==='Enter'){addSubcat();event.preventDefault();document.getElementById('subCatAc').style.display='none'}">
+              <div class="ac-list" id="subCatAc" style="display:none"></div>
+            </div>
+            <div id="subcatList" style="margin-top:8px;display:flex;flex-direction:column;gap:5px"></div>
+          </div>
+        </div>
+
+        <!-- EXPORTAR -->
+        <div class="rp" id="rp-export">
+          <div class="stitle">📤 Processar & Exportar</div>
+
+          <!-- LIMPAR FOTOS -->
+          <div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div style="font-size:11px;color:#7c5200;line-height:1.5">
+              <strong>Fotos importadas: <span id="clearCount">0</span></strong><br>
+              Precisa trocar as fotos? Limpe e importe novamente.
+            </div>
+            <button class="btn btn-sm" style="background:#dc2626;color:#fff;border:none;white-space:nowrap" onclick="clearFotos()">🗑 Limpar Fotos</button>
+          </div>
+
+          <!-- SELEÇÃO -->
+          <div class="sel-summary">
+            <div class="sel-count-big" id="exportSelCount">0</div>
+            <div>
+              <div style="font-size:12px;color:var(--muted)">foto(s) selecionadas</div>
+              <div style="display:flex;gap:5px;margin-top:5px">
+                <button class="btn btn-navy btn-sm" onclick="selectAll();updateExportCount()">☑ Todas</button>
+                <button class="btn btn-ghost btn-sm" onclick="selectNone();updateExportCount()">☐ Nenhuma</button>
+              </div>
+            </div>
+          </div>
+          <div id="selWarn" style="display:none;background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:9px 12px;font-size:11px;color:#7c5200;margin-bottom:10px">
+            ⚠️ Selecione ao menos 1 foto para processar.
+          </div>
+
+          <!-- QUALIDADE -->
+          <div class="fg">
+            <label>Qualidade JPEG</label>
+            <div class="qual-row">
+              <input type="range" id="quality" min="80" max="100" value="95" oninput="document.getElementById('qv').textContent=this.value">
+              <span class="qual-val" id="qv">95</span>
+            </div>
+            <div style="font-size:10px;color:var(--dim);margin-top:3px">Dimensões e resolução originais sempre preservadas</div>
+          </div>
+
+          <!-- PASSO 1: PROCESSAR -->
+          <div style="background:var(--pale2);border:1.5px solid var(--light);border-radius:var(--r2);padding:12px 14px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--navy);margin-bottom:6px">PASSO 1 — APLICAR METADADOS</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Grava todos os dados (GPS, descrição, keywords, categorias, rating) nas fotos selecionadas.</p>
+            <button class="btn-process" id="btnProcess" onclick="processarFotos()" style="font-size:13px;padding:12px">
+              ⚡ PROCESSAR SELECIONADAS
+            </button>
+            <!-- PROGRESS BAR 0-100% -->
+            <div id="progressWrap" style="display:none;margin-top:12px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--navy);font-weight:600;margin-bottom:4px">
+                <span id="progressLabel">Processando...</span>
+                <span id="progressPct">0%</span>
+              </div>
+              <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+                <div id="progressBar" style="height:100%;background:linear-gradient(90deg,var(--navy),var(--blue));width:0%;transition:width .3s;border-radius:4px"></div>
+              </div>
+            </div>
+            <div id="processResults" style="margin-top:8px"></div>
+          </div>
+
+          <!-- PASSO 2: EXPORTAR -->
+          <div style="background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r2);padding:12px 14px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--navy);margin-bottom:6px">PASSO 2 — EXPORTAR ARQUIVOS</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Escolha a pasta de destino e exporte as fotos já processadas.</p>
+            <div class="fg">
+              <label>Download dos Arquivos</label>
+              <div style="background:var(--pale2);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--navy);line-height:1.6;margin-bottom:8px">
+                💡 Após processar, clique em <strong>⬇</strong> em cada foto para baixar individualmente, ou use <strong>Baixar ZIP</strong> para todas.
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-navy btn-sm" onclick="downloadAll()">⬇ Baixar ZIP</button>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- SALVAR MODELO -->
+        <div class="rp" id="rp-save_model">
+          <div class="stitle">💾 Salvar Modelo</div>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            Salva todas as configurações atuais para reutilizar. Para sobrescrever um modelo existente, use o mesmo nome.
+          </p>
+          <div class="fg">
+            <label>Nome do Modelo</label>
+            <div class="ac-wrap">
+              <input type="text" id="modelName" placeholder="Ex: Restaurante ABC, Clínica Centro..."
+                oninput="acModelName(this.value)" autocomplete="off">
+              <div class="ac-list" id="modelNameAc" style="display:none"></div>
+            </div>
+          </div>
+          <div id="overwriteWarn" style="display:none;background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:8px 12px;font-size:11px;color:#7c5200;margin-bottom:8px">
+            ⚠️ Já existe um modelo com esse nome. Clique em Salvar para <strong>sobrescrever</strong>.
+          </div>
+          <button class="btn btn-blue btn-full" onclick="saveModel()">💾 Salvar Configurações Atuais</button>
+        </div>
+
+        <!-- USAR MODELO -->
+        <div class="rp" id="rp-use_model">
+          <div class="stitle">📂 Usar Modelo Salvo</div>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            Selecione as fotos primeiro, depois clique em um modelo para aplicar todos os metadados automaticamente.
+          </p>
+          <button class="btn btn-ghost btn-full btn-sm" onclick="loadModels()" style="margin-bottom:10px">🔄 Atualizar lista</button>
+          <div id="modelsList"><div class="empty"><div class="ei">💾</div><p>Nenhum modelo salvo ainda.</p></div></div>
+        </div>
+
+        <!-- NOME DO ARQUIVO -->
+        <div class="rp" id="rp-nome">
+          <div class="stitle">✏️ Renomear Arquivo</div>
+          <div class="fg">
+            <label>Padrão de Renomeação</label>
+            <input type="text" id="renamePattern" placeholder="empresa_foto_{n}"
+              oninput="previewRename()"
+              onkeydown="if(event.key==='Enter'){confirmRename();event.preventDefault()}">
+            <div style="font-size:10px;color:var(--dim);margin-top:4px">Pressione <strong>Enter</strong> para confirmar o padrão</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6">
+              <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{n}</code> número &nbsp;
+              <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{name}</code> original &nbsp;
+              <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{date}</code> data
+            </div>
+          </div>
+          <div id="rnPreview"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- COPYRIGHT FOOTER -->
+<div style="position:fixed;bottom:0;left:70px;right:0;background:var(--navy);color:rgba(255,255,255,.55);
+  font-size:10px;padding:5px 16px;display:flex;align-items:center;gap:8px;z-index:50;font-family:var(--mono)">
+  <img src="{{ icon }}" style="width:14px;height:14px;border-radius:3px;opacity:.8" alt="">
+  © 2026 RFA Marketing Digital &nbsp;·&nbsp; CNPJ: 64.810.923/0001-91 &nbsp;·&nbsp; Rômulo Falcão Arantes &nbsp;·&nbsp; Todos os direitos reservados
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CITIES=['São Paulo','Rio de Janeiro','Belo Horizonte','Salvador','Fortaleza','Curitiba','Manaus','Recife','Porto Alegre','Belém','Goiânia','Guarulhos','Campinas','São Luís','São Gonçalo','Maceió','Duque de Caxias','Natal','Teresina','Campo Grande','Nova Iguaçu','São Bernardo do Campo','João Pessoa','Santo André','Osasco','Ribeirão Preto','Sorocaba','Contagem','Uberlândia','Aracaju','Feira de Santana','Cuiabá','Joinville','Londrina','Juiz de Fora','Florianópolis','Santos','Jundiaí','Piracicaba','Bauru','São José dos Campos','Jaraguá do Sul','Blumenau','Chapecó','Cascavel','Foz do Iguaçu','Ponta Grossa','Maringá','Vitória','Vila Velha','Petrópolis','Mossoró','Caruaru','Montes Claros','Anápolis','Pelotas'];
+const STAR_LABELS=['Sem classificação','Baixa prioridade','Abaixo da média','Boa','Muito boa','Excelente'];
+const SOCIAL_OPTS=['Instagram','Facebook','TikTok','YouTube','LinkedIn','Twitter/X','WhatsApp','Pinterest','Outro'];
+
+// GMN OFFICIAL CATEGORIES
+const GMN_CATS=['Academia de dança','Academia de ginástica','Advocacia','Advogado','Agência de SEO','Agência de empregos','Agência de marketing','Agência de publicidade','Agência de viagens','Agência imobiliária','Aluguel de veículos','Arquitetura e urbanismo','Arquiteto','Assessoria financeira','Assistência técnica','Auto elétrica','Auto peças','Açougue','Banco','Barbearia','Barbearia e salão','Bar','Bijuteria','Boate','Borracharia','Boutique','Buffet','Cabeleireiro','Café','Câmbio','Camping','Casa de câmbio','Casa de festas','Casa noturna','Chaveiro','Cinema','Clínica de estética','Clínica de fisioterapia','Clínica de nutrição','Clínica de psicologia','Clínica de reabilitação','Clínica médica','Clínica odontológica','Clínica veterinária','Clube','Colégio','Comércio de alimentos','Compra e venda de veículos','Concessionária','Confeitaria','Construtora','Construtora civil','Consultório de psicologia','Consultório fisioterapêutico','Consultório médico','Consultório odontológico','Contabilidade','Cooperativa','Coworking','Creche','Decoração','Delivery de comida','Dentista','Dentista pediatra','Depósito de materiais','Designer de interiores','Designer gráfico','Despachante','Distribuidora','Educação infantil','Elétrica predial','Eletricista','Empresa de mudanças','Empresa de tecnologia','Enfermagem','Engenharia civil','Escola','Escola de idiomas','Escola de música','Esteticista','Estética automotiva','Estética corporal','Estética facial','Estúdio de fotografia','Estúdio de tatuagem','Eventos','Exames laboratoriais','Farmácia','Financeira','Fisioterapeuta','Floricultura','Fotografia','Fotógrafo','Franquia','Funilaria','Funileiro','Gráfica','Hamburgueria','Hamburgueria artesanal','Hidráulica','Hotel','Igreja','Imobiliária','Importadora','Indústria','Instalação de ar condicionado','Instalação elétrica','Instituto de beleza','Jardinagem','Joalheria','Laboratório','Lanchonete','Lavagem de veículos','Lavanderia','Loja de artigos esportivos','Loja de brinquedos','Loja de calçados','Loja de cosméticos','Loja de eletrônicos','Loja de informática','Loja de material de construção','Loja de móveis','Loja de roupas','Loja de suplementos','Loja virtual','Manicure','Marketing digital','Marmoraria','Massagem','Material de construção','Mecânico','Médico','Médico cardiologista','Médico clínico geral','Médico dermatologista','Médico ginecologista','Médico neurologista','Médico ortopedista','Médico pediatra','Médico psiquiatra','Médico urologista','Mercearia','Minimercado','Montagem de móveis','Motoboy','Nutricionista','Oficina de bicicletas','Oficina de eletrônicos','Oficina mecânica','Padaria','Paisagismo','Panificadora','Papelaria','Pedreiro','Pensão','Personal trainer','Petshop','Pintor','Pintura predial','Pizzaria','Pizzaria delivery','Plano de saúde','Pneus','Pousada','Pousada rural','Produtos naturais','Professor particular','Psicólogo','Psiquiatra','Publicidade','Reciclagem','Reformas','Reparação de computadores','Restaurante','Restaurante italiano','Restaurante japonês','Restaurante vegetariano','Salão de beleza','Salão de jogos','Serviço automotivo','Serviço de contabilidade','Serviço de entrega','Serviço de jardinagem','Serviço de limpeza','Serviço de pintura','Serviço de reformas','Serviço de segurança','Serviço elétrico','Serviço hidráulico','Sistema de segurança','Sorveteria','Sorveteria artesanal','Spa','Supermercado','Suplementos alimentares','Tatuagem','Técnico de refrigeração','Técnico em informática','Tecnologia da informação','Topografia','Transporte','Transporte escolar','Turismo','Uniformes','Veterinário','Vidraçaria','Zootecnista'].sort();
+
+// CATEGORY AUTOCOMPLETE
+function acCategory(val, listId, inputId){
+  const list=document.getElementById(listId);
+  if(val.length<1){list.style.display='none';return}
+  const m=GMN_CATS.filter(c=>c.toLowerCase().includes(val.toLowerCase())).slice(0,10);
+  if(!m.length){list.style.display='none';return}
+  list.innerHTML=m.map(c=>`<div class="ac-item" onclick="pickCategory('${c.replace(/'/g,"\\'")}','${listId}','${inputId}')">${c}</div>`).join('');
+  list.style.display='block';
+}
+function pickCategory(val, listId, inputId){
+  document.getElementById(inputId).value=val;
+  document.getElementById(listId).style.display='none';
+  if(inputId==='mainCategory') confirmMainCat();
+  else {
+    // For subcategories, add as tag
+    if(!tagState.cat.includes(val)){
+      tagState.cat.push(val);
+      renderTags('cat');
+    }
+    document.getElementById(inputId).value='';
+  }
+}
+function confirmMainCat(){
+  const val=document.getElementById('mainCategory').value.trim();
+  if(!val) return;
+  const confirmed=document.getElementById('mainCatConfirmed');
+  document.getElementById('mainCatLabel').textContent='🏷️ '+val;
+  confirmed.style.display='flex';
+  document.getElementById('mainCatAc').style.display='none';
+}
+function clearMainCat(){
+  document.getElementById('mainCategory').value='';
+  document.getElementById('mainCatConfirmed').style.display='none';
+}
+
+const S={files:[],map:null,mapM:null,outDir:'',lastOutDir:'',rating:0,kwTags:[],catTags:[],sid:''};
+
+// TOAST
+const toast=(msg,type='ok')=>{const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3500)};
+
+// NAV
+function navTo(id,el){
+  document.querySelectorAll('.ni').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.rp').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('rp-'+id).classList.add('active');
+  if(id==='use_model') loadModels();
+  if(id==='export') updateExportCount();
+  if(id==='loc') setTimeout(()=>{if(!S.map) initMinimap(); S.map.invalidateSize();},100);
+}
+
+// MINIMAP
+function initMinimap(){
+  if(S.map) return;
+  S.map=L.map('minimap').setView([-15.78,-47.93],4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(S.map);
+  S.map.on('click',e=>{
+    const{lat,lng}=e.latlng;
+    document.getElementById('lat').value=lat.toFixed(6);
+    document.getElementById('lon').value=lng.toFixed(6);
+    placeMapMarker(lat,lng);
+    toast(`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+  });
+}
+function placeMapMarker(lat,lon){
+  if(S.mapM) S.map.removeLayer(S.mapM);
+  S.mapM=L.marker([lat,lon],{icon:L.divIcon({className:'',
+    html:'<div style="width:12px;height:12px;background:#2e6da4;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>',
+    iconSize:[12,12],iconAnchor:[6,6]})}).addTo(S.map);
+  S.map.setView([lat,lon],14);
+}
+function updateMinimap(){
+  const lat=parseFloat(document.getElementById('lat').value);
+  const lon=parseFloat(document.getElementById('lon').value);
+  if(S.map&&!isNaN(lat)&&!isNaN(lon)) placeMapMarker(lat,lon);
+}
+
+// STARS
+let curRating=0;
+const SLABELS=['Sem classificação','Baixa prioridade','Abaixo da média','Boa','Muito boa','Excelente'];
+function renderStars(n){
+  for(let i=1;i<=5;i++) document.getElementById('sc'+i).className='sc-star'+(i<=n?' on':'');
+  document.getElementById('scLabel').textContent=n>0?n+'★ — '+SLABELS[n]:SLABELS[0];
+}
+function setStars(n){curRating=curRating===n?0:n;S.rating=curRating;renderStars(curRating);}
+function hoverS(n){renderStars(n>0?n:curRating);}
+function starsHtml(r){return r?'★'.repeat(r)+'☆'.repeat(5-r):'';}
+
+// TAGS
+const tagState={kw:[],cat:[]};
+function tagKeydown(e,type){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    const val=e.target.value.trim().replace(/,$/,'');
+    if(val&&!tagState[type].includes(val)){
+      tagState[type].push(val);
+      renderTags(type);
+    }
+    e.target.value='';
+  }
+}
+function removeTag(type,val){
+  tagState[type]=tagState[type].filter(t=>t!==val);
+  renderTags(type);
+}
+function renderTags(type){
+  const wrap=document.getElementById(type+'Wrap');
+  const input=document.getElementById(type+'Input');
+  // Remove old tag items
+  wrap.querySelectorAll('.tag-item').forEach(t=>t.remove());
+  tagState[type].forEach(t=>{
+    const el=document.createElement('span');
+    el.className='tag-item';
+    el.innerHTML=`${t}<span class="tag-x" onclick="removeTag('${type}','${t.replace(/'/g,"\\'")}')">×</span>`;
+    wrap.insertBefore(el,input);
+  });
+}
+function setTagsFromArray(type,arr){
+  tagState[type]=[...new Set(arr.filter(Boolean))];
+  renderTags(type);
+}
+
+// SOCIAL
+let socialList=[];
+function addSocial(net='',url=''){
+  const id=Date.now();
+  socialList.push({id,net,url});
+  renderSocial();
+}
+function removeSocial(id){
+  socialList=socialList.filter(s=>s.id!==id);
+  renderSocial();
+}
+function renderSocial(){
+  const el=document.getElementById('socialList');
+  el.innerHTML=socialList.map(s=>`
+    <div class="social-row">
+      <select onchange="updateSocial(${s.id},'net',this.value)">${SOCIAL_OPTS.map(o=>`<option${o===s.net?' selected':''}>${o}</option>`).join('')}</select>
+      <input type="url" value="${s.url}" placeholder="https://..." oninput="updateSocial(${s.id},'url',this.value)">
+      <button class="rm-btn" onclick="removeSocial(${s.id})">×</button>
+    </div>`).join('');
+}
+function updateSocial(id,key,val){
+  const s=socialList.find(x=>x.id===id);if(s) s[key]=val;
+}
+
+// UPLOAD
+const dz=document.getElementById('dropzone'),fi=document.getElementById('fileInput');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files)});
+fi.addEventListener('change',e=>handleFiles(e.target.files));
+
+async function handleFiles(files){
+  if(!files.length) return;
+  const fd=new FormData();for(const f of files) fd.append('files',f);
+  const prog=document.getElementById('upProg'),fill=document.getElementById('upFill');
+  prog.style.display='block';fill.style.width='20%';
+  const res=await fetch('/upload',{method:'POST',body:fd});
+  fill.style.width='90%';const data=await res.json();
+  fill.style.width='100%';setTimeout(()=>prog.style.display='none',600);
+  data.files.forEach(f=>{if(!S.files.find(x=>x.name===f.name)) S.files.push({...f,checked:true,rating:0})});
+  renderList();renderGallery();updateCounts();updateExportCount();
+  toast(`✓ ${data.files.length} foto(s) importada(s)`);
+}
+
+// PHOTO LIST
+function renderList(){
+  const el=document.getElementById('photoList');
+  if(!S.files.length){el.innerHTML='<div class="empty"><div class="ei">📷</div><p>Nenhuma foto.</p></div>';return}
+  el.innerHTML=S.files.map((f,i)=>`
+    <div class="prow ${f.active?'active':''} ${f.checked?'checked':''}" onclick="selectFile(${i})">
+      <div class="cb" onclick="toggleCk(event,${i})">${f.checked?'✓':''}</div>
+      <div class="geo-dot ${f.exif?.lat?'yes':'no'}"></div>
+      ${f.thumb?`<img src="${f.thumb}" class="pthumb" onerror="this.style.display='none'">` : '<div class="pthumb-ph">🖼️</div>'}
+      <div class="pinfo">
+        <div class="pname" title="${f.name}">${f.name}</div>
+        <div class="pgeo ${f.exif?.lat?'yes':'no'}">${f.exif?.lat?`📍 ${Number(f.exif.lat).toFixed(3)}...`:'sem GPS'}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('pcount').textContent=S.files.length;
+}
+
+// GALLERY
+function renderGallery(){
+  const el=document.getElementById('gallery');
+  if(!S.files.length){
+    el.innerHTML='<div class="gallery-empty"><div class="ei">🖼️</div><p>Nenhuma foto importada ainda.<br>Use o painel esquerdo para importar.</p></div>';
+    document.getElementById('galInfo').textContent='Importe fotos para começar';
+    return;
+  }
+  document.getElementById('galInfo').textContent=`${S.files.length} foto(s) · ${S.files.filter(f=>f.checked).length} selecionadas`;
+  el.innerHTML=S.files.map((f,i)=>`
+    <div class="gcard ${f.active?'active':''} ${f.checked?'checked':''}" onclick="selectFile(${i})">
+      <div class="gcard-check">
+        ${f.thumb?`<img src="${f.thumb}" class="gcard-img" onerror="this.parentElement.innerHTML='<div class=gcard-img-ph>🖼️</div>'">` : '<div class="gcard-img-ph">🖼️</div>'}
+        <div class="gcard-cb" onclick="toggleCk(event,${i})">${f.checked?'✓':''}</div>
+      </div>
+      <div class="gcard-info">
+        <div class="gcard-name" title="${f.name}">${f.name}</div>
+        <div class="gcard-meta">${f.exif?.width?f.exif.width+'×'+f.exif.height+'px':''}</div>
+        ${f.exif?.lat?`<div class="gcard-geo">📍 ${Number(f.exif.lat).toFixed(4)}, ${Number(f.exif.lon).toFixed(4)}</div>`:''}
+        ${f.rating?`<div class="gcard-stars">${starsHtml(f.rating)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function selectFile(i){
+  S.files.forEach(f=>f.active=false);S.files[i].active=true;
+  const f=S.files[i];
+  ['desc','artist','copyright','date','city','state','country','address','website','email','phone','lat','lon','alt','mainCategory'].forEach(k=>{
+    const el=document.getElementById(k);if(el) el.value=f.exif?.[k]||'';
+  });
+  curRating=f.rating||0;S.rating=curRating;renderStars(curRating);
+  if(f.exif?.keywords) setTagsFromArray('kw',f.exif.keywords.split?.(',')||f.exif.keywords);
+  renderList();renderGallery();
+  if(f.exif?.lat&&f.exif?.lon&&S.map) placeMapMarker(f.exif.lat,f.exif.lon);
+}
+
+function toggleCk(e,i){
+  e.stopPropagation();S.files[i].checked=!S.files[i].checked;
+  renderList();renderGallery();updateCounts();updateExportCount();
+}
+function selectAll(){S.files.forEach(f=>f.checked=true);renderList();renderGallery();updateCounts();updateExportCount()}
+function selectNone(){S.files.forEach(f=>f.checked=false);renderList();renderGallery();updateCounts();updateExportCount()}
+function updateCounts(){
+  const sel=S.files.filter(f=>f.checked).length;
+  ['selCount','hSel'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=sel});
+  ['totCount','hTot'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=S.files.length});
+  document.getElementById('galInfo').textContent=`${S.files.length} foto(s) · ${sel} selecionadas`;
+  const cc=document.getElementById('clearCount');if(cc)cc.textContent=S.files.length;
+}
+function updateExportCount(){
+  const n=S.files.filter(f=>f.checked).length;
+  const el=document.getElementById('exportSelCount');if(el)el.textContent=n;
+  const warn=document.getElementById('selWarn');if(warn)warn.style.display=n===0?'block':'none';
+  const btn=document.getElementById('btnProcess');if(btn)btn.disabled=n===0;
+}
+
+function getMeta(){
+  // Build full address from separate fields
+  const street=document.getElementById('street')?.value||'';
+  const number=document.getElementById('number')?.value||'';
+  const complement=document.getElementById('complement')?.value||'';
+  const neighborhood=document.getElementById('neighborhood')?.value||'';
+  const addressParts=[street,number,complement].filter(Boolean).join(', ');
+  const fullAddress=[addressParts,neighborhood].filter(Boolean).join(' - ');
+
+  return{
+    desc:document.getElementById('desc').value,
+    artist:document.getElementById('artist').value,
+    copyright:document.getElementById('copyright').value,
+    date:document.getElementById('date').value,
+    city:document.getElementById('city').value,
+    state:document.getElementById('state').value,
+    country:document.getElementById('country').value,
+    address:fullAddress,
+    neighborhood:neighborhood,
+    website:document.getElementById('website').value,
+    email:document.getElementById('email').value,
+    phone:document.getElementById('phone')?.value||'',
+    social:JSON.stringify(socialList),
+    mainCategory:document.getElementById('mainCategory').value,
+    categories:subcatList.join(','),
+    keywords:tagState.kw.join(','),
+    lat:document.getElementById('lat').value||null,
+    lon:document.getElementById('lon').value||null,
+    alt:document.getElementById('alt').value||null,
+    quality:document.getElementById('quality').value,
+    rating:curRating
+  };
+}
+
+// CEP
+function maskCep(el){let v=el.value.replace(/\D/g,'');if(v.length>5)v=v.slice(0,5)+'-'+v.slice(5,8);el.value=v}
+async function buscaCep(){
+  const cep=document.getElementById('cep').value.replace(/\D/g,'');
+  if(cep.length!==8)return;
+  document.getElementById('cepStatus').textContent='🔍 Buscando...';
+  try{
+    const r=await fetch(`/cep/${cep}`),d=await r.json();
+    if(d.erro){document.getElementById('cepStatus').textContent='⚠ CEP não encontrado';return}
+    document.getElementById('street').value=d.logradouro||'';
+    document.getElementById('neighborhood').value=d.bairro||'';
+    document.getElementById('city').value=d.localidade||'';
+    document.getElementById('state').value=d.uf||'';
+    document.getElementById('state').value=d.uf||'';
+    document.getElementById('cepStatus').textContent=`✓ ${d.localidade} / ${d.uf}`;
+    await geocodeFromAddress();
+    toast(`✓ CEP ${cep} — ${d.localidade}`);
+  }catch{document.getElementById('cepStatus').textContent='⚠ Erro'}
+}
+
+// GEOCODE
+async function geocodeFromAddress(){
+  const parts=[
+    document.getElementById('street')?.value,
+    document.getElementById('number')?.value,
+    document.getElementById('neighborhood')?.value,
+    document.getElementById('city').value,
+    document.getElementById('state').value,
+    document.getElementById('country').value
+  ].filter(Boolean);
+  if(!parts.length){toast('Preencha o endereço primeiro','err');return}
+  const q=encodeURIComponent(parts.join(', '));
+  try{
+    const res=await fetch(`/geocode?q=${q}`),data=await res.json();
+    if(data[0]){
+      const lat=parseFloat(data[0].lat).toFixed(6);
+      const lon=parseFloat(data[0].lon).toFixed(6);
+      document.getElementById('lat').value=lat;
+      document.getElementById('lon').value=lon;
+      if(!S.map) initMinimap();
+      placeMapMarker(parseFloat(lat),parseFloat(lon));
+      toast(`📍 Coordenadas obtidas: ${lat}, ${lon}`);
+    } else {toast('Endereço não encontrado na web','err')}
+  }catch{toast('Erro ao buscar coordenadas','err')}
+}
+
+// CITY AUTOCOMPLETE
+function acCity(val){
+  const list=document.getElementById('cityAc');
+  if(val.length<2){list.style.display='none';return}
+  const m=CITIES.filter(c=>c.toLowerCase().includes(val.toLowerCase())).slice(0,8);
+  if(!m.length){list.style.display='none';return}
+  list.innerHTML=m.map(c=>`<div class="ac-item" onclick="pickCity('${c}')">${c}</div>`).join('');
+  list.style.display='block';
+}
+function pickCity(c){
+  document.getElementById('city').value=c;document.getElementById('cityAc').style.display='none';
+  geocodeFromAddress();
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.ac-wrap')) document.querySelectorAll('.ac-list').forEach(l=>l.style.display='none')
+});
+
+// IMPORT KEYWORDS
+async function importKeywords(input){
+  const f=input.files[0];if(!f)return;
+  const fd=new FormData();fd.append('file',f);
+  const res=await fetch('/import_keywords',{method:'POST',body:fd});
+  const data=await res.json();
+  if(data.error){toast('Erro ao importar: '+data.error,'err');return}
+  const existing=tagState.kw;
+  setTagsFromArray('kw',[...new Set([...existing,...data.keywords])]);
+  document.getElementById('kwImportStatus').textContent=`✓ ${data.keywords.length} palavras importadas`;
+  toast(`✓ ${data.keywords.length} keywords importadas`);
+}
+
+// OUTDIR
+async function chooseFolderDialog(){ toast('Use o botão ⬇ para baixar'); } async function _chooseFolderDialog_unused(){
+  try{
+    const res=await fetch('/choose_folder',{method:'POST'});
+    const data=await res.json();
+    if(data.ok&&data.path){
+      S.outDir=data.path;
+      document.getElementById('outdirDisplay').textContent=data.path;
+      document.getElementById('outdirInput').value=data.path;
+      toast('✓ Pasta: '+data.path);
+    } else {
+      toast('Selecione uma pasta válida','err');
+    }
+  }catch{toast('Erro ao abrir Finder','err')}
+}
+function setOutdir(){ toast('Use o botão de download'); } function _setOutdir_unused(){
+  const v=document.getElementById('outdirInput').value.trim();
+  if(!v){toast('Digite um caminho','err');return}
+  S.outDir=v;document.getElementById('outdirDisplay').textContent=v;toast('✓ Pasta definida');
+}
+
+// PASSO 1: PROCESSAR com progresso real 0-100%
+async function processarFotos(){
+  const sel=S.files.filter(f=>f.checked);
+  if(!sel.length){toast('Selecione ao menos 1 foto','err');return}
+
+  // Reset progress
+  const pw=document.getElementById('progressWrap');
+  const pb=document.getElementById('progressBar');
+  const pl=document.getElementById('progressLabel');
+  const pp=document.getElementById('progressPct');
+  pw.style.display='block'; pb.style.width='0%'; pp.textContent='0%';
+  pl.textContent='Iniciando...';
+  document.getElementById('btnProcess').disabled=true;
+  document.getElementById('processResults').innerHTML='';
+
+  const meta=getMeta();
+  const rename=document.getElementById('renamePattern')?.value||'';
+
+  // Process one by one for real progress
+  const results=[];
+  for(let i=0;i<sel.length;i++){
+    const f=sel[i];
+    pl.textContent=`Processando ${f.name}`;
+    const pct=Math.round(((i)/sel.length)*100);
+    pb.style.width=pct+'%'; pp.textContent=pct+'%';
+
+    try{
+      const res=await fetch('/apply',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({files:[f.name],meta,rename:rename||'',out_dir:'',index:i,sid:S.sid})});
+      const data=await res.json();
+      if(data.out_dir&&!S.lastOutDir) S.lastOutDir=data.out_dir;
+      results.push(...(data.results||[]));
+    }catch(e){
+      results.push({file:f.name,ok:false,msg:'Erro de conexão'});
+    }
+  }
+
+  // Complete
+  pb.style.width='100%'; pp.textContent='100%';
+  pl.textContent='Concluído!';
+  setTimeout(()=>{ pw.style.display='none'; },3000);
+  document.getElementById('btnProcess').disabled=false;
+
+  const ok=results.filter(r=>r.ok).length;
+  const html=results.map(r=>`
+    <div class="res-item">
+      <span style="color:${r.ok?'var(--green)':'var(--red)'}">${r.ok?'✓':'✗'}</span>
+      <span style="flex:1;font-size:10px;font-family:var(--mono)">${r.file}</span>
+      ${r.ok?`<a href="/download_file/${S.sid}/${r.out}" class="btn btn-ghost btn-sm" download style="font-size:10px;padding:3px 8px">⬇</a>`:`<span style="color:var(--red);font-size:10px">${r.msg||'erro'}</span>`}
+    </div>`).join('');
+  document.getElementById('processResults').innerHTML=`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px;margin-top:6px">
+      <div style="font-size:10px;font-weight:700;color:${ok===sel.length?'var(--green)':'var(--orange)'};margin-bottom:6px">
+        ${ok===sel.length?'✅':'⚠️'} ${ok} de ${sel.length} foto(s) processada(s)
+      </div>${html}
+    </div>`;
+  if(S.lastOutDir){
+    const btn=document.getElementById('btnOpenFolder');
+    if(btn){btn.style.display='inline-flex';btn.onclick=()=>openFolder(S.lastOutDir);}
+  }
+  if(ok>0) toast(`✓ ${ok} foto(s) processada(s)!`);
+  else toast('Erro ao processar','err');
+}
+
+// Helper for zero-padded numbers
+String.prototype.zfill3=function(){return this};
+
+// LIMPAR FOTOS (não limpa sessão toda, só as fotos)
+async function clearFotos(){
+  if(!S.files.length){toast('Nenhuma foto para limpar','err');return}
+  if(!confirm(`Remover as ${S.files.length} foto(s) importadas? Os metadados preenchidos serão mantidos.`)) return;
+  await fetch('/clear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:S.sid})});
+  S.files=[];
+  renderList();renderGallery();updateCounts();updateExportCount();
+  document.getElementById('clearCount').textContent='0';
+  toast('🗑 Fotos removidas. Pode importar novas!');
+}
+
+// CONFIRM RENAME WITH ENTER
+function confirmRename(){
+  const pat=document.getElementById('renamePattern').value.trim();
+  if(!pat){toast('Digite um padrão de nome','err');return}
+  previewRename();
+  toast(`✓ Padrão "${pat}" confirmado`);
+}
+
+// MODEL NAME AUTOCOMPLETE (for overwrite)
+let _savedModelKeys=[];
+function acModelName(val){
+  const list=document.getElementById('modelNameAc');
+  const warn=document.getElementById('overwriteWarn');
+  if(!val){list.style.display='none';warn.style.display='none';return}
+  const m=_savedModelKeys.filter(k=>k.toLowerCase().includes(val.toLowerCase())).slice(0,6);
+  if(m.length){
+    list.innerHTML=m.map(k=>`<div class="ac-item" onclick="pickModelName('${k.replace(/'/g,"\\'")}')">${k}</div>`).join('');
+    list.style.display='block';
+  } else list.style.display='none';
+  // Show overwrite warning if exact match
+  warn.style.display=_savedModelKeys.includes(val)?'block':'none';
+}
+function pickModelName(name){
+  document.getElementById('modelName').value=name;
+  document.getElementById('modelNameAc').style.display='none';
+  document.getElementById('overwriteWarn').style.display='block';
+}
+
+// SUBCATEGORIES LIST (separate from tags)
+let subcatList=[];
+function addSubcat(){
+  const val=document.getElementById('catInput').value.trim();
+  if(!val||subcatList.includes(val)) return;
+  subcatList.push(val);
+  renderSubcats();
+  document.getElementById('catInput').value='';
+}
+function removeSubcat(val){
+  subcatList=subcatList.filter(v=>v!==val);
+  renderSubcats();
+}
+function renderSubcats(){
+  const el=document.getElementById('subcatList');
+  if(!el) return;
+  el.innerHTML=subcatList.map(v=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--pale);border-radius:var(--r);padding:6px 10px">
+      <span style="flex:1;font-size:12px;color:var(--navy)">🏷️ ${v}</span>
+      <span style="cursor:pointer;color:var(--muted);font-size:16px;font-weight:700" onclick="removeSubcat('${v.replace(/'/g,"\\'")}')">×</span>
+    </div>`).join('');
+}
+
+// PASSO 2: EXPORTAR (download)
+async function openFolder(path){ toast('Use o botão de download'); }
+function openLastFolder(){}
+function downloadAll(){ if(S.sid) window.location.href='/download_all/'+S.sid; else toast('Processe as fotos primeiro','err'); }
+
+// RENAME PREVIEW
+function previewRename(){
+  const pat=document.getElementById('renamePattern').value,el=document.getElementById('rnPreview');
+  if(!pat||!S.files.length){el.innerHTML='';return}
+  const rows=S.files.slice(0,4).map((f,i)=>{
+    const b=pat.replace('{n}',String(i+1).padStart(3,'0')).replace('{name}',f.name.replace(/\.[^.]+$/,'')).replace('{date}',new Date().toISOString().slice(0,10).replace(/-/g,''));
+    return `<div class="res-item"><span style="flex:1;color:var(--muted);font-size:10px">${f.name}</span><span style="color:var(--dim)">→</span><span style="color:var(--navy);font-weight:500">${b}.jpg</span></div>`;
+  }).join('');
+  el.innerHTML=`<div class="res-wrap"><div class="stitle">PRÉVIA</div>${rows}</div>`;
+}
+
+// MODELS
+async function saveModel(){
+  const name=document.getElementById('modelName').value.trim();
+  if(!name){toast('Digite um nome','err');return}
+  const meta=getMeta();
+  meta.kwTags=tagState.kw;
+  meta.subcatList=subcatList;
+  meta.street=document.getElementById('street')?.value||'';
+  meta.number=document.getElementById('number')?.value||'';
+  meta.complement=document.getElementById('complement')?.value||'';
+  meta.neighborhood=document.getElementById('neighborhood')?.value||'';
+  await fetch('/models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,meta})});
+  document.getElementById('modelName').value='';
+  document.getElementById('overwriteWarn').style.display='none';
+  document.getElementById('modelNameAc').style.display='none';
+  toast(`💾 Modelo "${name}" salvo!`);
+  await loadModels();
+}
+
+async function loadModels(){
+  const res=await fetch('/models');const m=await res.json();const keys=Object.keys(m);
+  _savedModelKeys=keys; // update for autocomplete
+  const el=document.getElementById('modelsList');
+  if(!keys.length){el.innerHTML='<div class="empty"><div class="ei">💾</div><p>Nenhum modelo salvo ainda.</p></div>';return}
+  el.innerHTML=keys.map(k=>`
+    <div class="model-card">
+      <div class="model-name">📋 ${k}</div>
+      <div class="model-meta">${m[k].city||''} ${m[k].mainCategory?'· '+m[k].mainCategory:''}</div>
+      <div class="model-actions">
+        <button class="btn btn-blue btn-sm btn-full" onclick='applyModel(${JSON.stringify(m[k])})'>✓ Aplicar nos selecionados</button>
+        <button class="btn btn-danger btn-sm" onclick="delModel('${k}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function applyModel(m){
+  // Address fields
+  ['street','number','complement','neighborhood','city','state','country','website','email','mainCategory','lat','lon','alt'].forEach(k=>{
+    const el=document.getElementById(k);if(el&&m[k]) el.value=m[k];
+  });
+  ['desc','artist','copyright','date'].forEach(k=>{
+    const el=document.getElementById(k);if(el&&m[k]) el.value=m[k];
+  });
+  if(m.rating){curRating=parseInt(m.rating)||0;S.rating=curRating;renderStars(curRating);}
+  if(m.kwTags&&m.kwTags.length) setTagsFromArray('kw',m.kwTags);
+  else if(m.keywords) setTagsFromArray('kw',m.keywords.split(',').filter(Boolean));
+  // Subcategories
+  if(m.subcatList&&m.subcatList.length){subcatList=[...m.subcatList];renderSubcats();}
+  else if(m.categories){subcatList=m.categories.split(',').filter(Boolean);renderSubcats();}
+  // Main category confirmed
+  if(m.mainCategory){
+    document.getElementById('mainCategory').value=m.mainCategory;
+    confirmMainCat();
+  }
+  if(m.social){try{socialList=JSON.parse(m.social);renderSocial();}catch{}}
+  toast('✓ Modelo aplicado!');
+}
+
+async function delModel(name){
+  await fetch(`/models/${encodeURIComponent(name)}`,{method:'DELETE'});
+  toast(`Modelo "${name}" removido`);loadModels();
+}
+
+// CLEAR
+async function clearAll(){
+  if(!confirm('Limpar todos os arquivos temporários?'))return;
+  await fetch('/clear',{method:'POST'});
+  S.files=[];tagState.kw=[];tagState.cat=[];socialList=[];curRating=0;
+  renderList();renderGallery();updateCounts();updateExportCount();
+  renderTags('kw');renderTags('cat');renderStars(0);
+  toast('🗑 Sessão limpa');
+}
+
+// INIT
+updateCounts();updateExportCount();
+setTimeout(initMinimap,500);
+</script>
+</body>
+</html>
