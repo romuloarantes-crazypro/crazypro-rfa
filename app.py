@@ -273,9 +273,22 @@ def upload():
     sid=get_sid(); ud=user_dir(sid)
     files=request.files.getlist('files'); saved=[]
     for f in files:
-        ext=os.path.splitext(f.filename)[1].lower()
+        orig_name = f.filename
+        ext=os.path.splitext(orig_name)[1].lower()
+        if not ext or ext not in SUPPORTED:
+            # Try to detect from content type
+            ct = f.content_type or ''
+            if 'jpeg' in ct or 'jpg' in ct: ext='.jpg'
+            elif 'png' in ct: ext='.png'
+            else: ext='.jpg'  # default
         if ext not in SUPPORTED: continue
-        fname=secure_filename(f.filename)
+        # Build safe filename preserving original name + correct extension
+        safe = secure_filename(orig_name)
+        if not safe.lower().endswith(ext):
+            safe = os.path.splitext(safe)[0] + ext
+        if not safe or safe == ext:
+            safe = f'foto_{uuid.uuid4().hex[:8]}{ext}'
+        fname = safe
         fpath=os.path.join(ud,fname); f.save(fpath)
         exif_info=get_exif(fpath)
         try:
@@ -302,12 +315,18 @@ def apply():
     for i,fname in enumerate(files):
         src=os.path.join(ud,fname)
         if not os.path.exists(src): results.append({'file':fname,'ok':False,'msg':'não encontrado'}); continue
-        orig_base=os.path.splitext(fname)[0]
+        # Get base name — remove ALL known image extensions safely
+        import re
+        orig_base = re.sub(r'\.(jpg|jpeg|png|tif|tiff|dng|nef|raf|crw|raw)$', '', fname, flags=re.IGNORECASE)
+        # If no extension was removed, use splitext as fallback
+        if orig_base == fname:
+            orig_base = os.path.splitext(fname)[0]
         global_i=index+i
         if rename:
             base=rename.replace('{n}',str(global_i+1).zfill(3)).replace('{name}',orig_base).replace('{date}',datetime.now().strftime('%Y%m%d'))
         else:
             base=orig_base
+        # Always output as .jpg
         out_name=base+'.jpg'
         out_path=os.path.join(out_dir,out_name)
         # Avoid overwrite
