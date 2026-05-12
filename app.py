@@ -76,12 +76,21 @@ def esc(s):
 
 def build_full_xmp(meta):
     desc=esc(meta.get('desc','')); artist=esc(meta.get('artist',''))
-    copyright=esc(meta.get('copyright','')); title=esc(meta.get('title') or meta.get('desc','')[:80])
+    copyright=esc(meta.get('copyright',''))
+    # dc:title is separate from description — use dedicated title field or first 80 chars of desc
+    title=esc(meta.get('title','') or (meta.get('desc','')[:80] if meta.get('desc') else ''))
     city=esc(meta.get('city','')); state=esc(meta.get('state',''))
     country=esc(meta.get('country','Brasil')); address=esc(meta.get('address',''))
-    cep=esc(meta.get('cep','').replace('-','')); website=esc(meta.get('website',''))
-    email=esc(meta.get('email','')); phone=esc(meta.get('phone') or meta.get('artist',''))
+    cep=esc(str(meta.get('cep','')).replace('-','')); website=esc(meta.get('website',''))
+    email=esc(meta.get('email','')); phone=esc(meta.get('phone',''))
     category=esc(meta.get('mainCategory','')); rating=int(meta.get('rating') or 0)
+    # Social network as AuthorsPosition (like GeoSetter uses WhatsApp/Instagram etc)
+    authors_position=esc(meta.get('social_main',''))
+    try:
+        import json as _j
+        socials=_j.loads(meta.get('social','[]'))
+        if socials: authors_position=esc(socials[0].get('net',''))
+    except: pass
     lat=meta.get('lat'); lon=meta.get('lon'); alt=meta.get('alt') or 0
     kw_raw=meta.get('keywords','')
     keywords=[esc(k.strip()) for k in kw_raw.split(',') if k.strip()] if kw_raw else []
@@ -91,7 +100,9 @@ def build_full_xmp(meta):
     kw_block=f'  <dc:subject>\n   <rdf:Bag>\n{kw_items}\n   </rdf:Bag>\n  </dc:subject>' if keywords else ''
     sub_items='\n'.join(f'    <rdf:li>{c}</rdf:li>' for c in subcats)
     sub_block=f'  <photoshop:SupplementalCategories>\n   <rdf:Bag>\n{sub_items}\n   </rdf:Bag>\n  </photoshop:SupplementalCategories>' if subcats else ''
-    gps_lat_xmp=gps_lon_xmp=gps_alt_xmp=''
+
+    gps_lat_xmp=gps_lon_xmp=gps_alt_xmp=gps_timestamp=''
+    gps_direction='0/1'; gps_direction_ref='M'
     if lat and lon:
         try:
             flat=float(lat); flon=float(lon)
@@ -101,13 +112,20 @@ def build_full_xmp(meta):
             gps_lat_xmp=f'{flat_d},{flat_m:.6f}{lat_ref}'
             gps_lon_xmp=f'{flon_d},{flon_m:.6f}{lon_ref}'
             gps_alt_xmp=f'{int(float(alt))}/1'
+            # GPS Timestamp — use current datetime or from meta
+            from datetime import timezone
+            gps_timestamp=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         except: pass
+
     ms_rating=99 if rating==5 else(75 if rating==4 else(50 if rating==3 else(25 if rating==2 else(1 if rating==1 else 0))))
     country_code=country[:3].upper() if country else 'BRA'
+
     return f"""<?xpacket begin='\xef\xbb\xbf' id='W5M0MpCehiHzreSzNTczkc9d'?>
-<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='CrazyPro RFA 6.0'>
+<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 10.96'>
 <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
- <rdf:Description rdf:about='' xmlns:Iptc4xmpCore='http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/'>
+
+ <rdf:Description rdf:about=''
+  xmlns:Iptc4xmpCore='http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/'>
   <Iptc4xmpCore:CountryCode>{country_code}</Iptc4xmpCore:CountryCode>
   <Iptc4xmpCore:Location>{address}</Iptc4xmpCore:Location>
   <Iptc4xmpCore:CreatorContactInfo rdf:parseType='Resource'>
@@ -121,43 +139,60 @@ def build_full_xmp(meta):
    <Iptc4xmpCore:CiUrlWork>{website}</Iptc4xmpCore:CiUrlWork>
   </Iptc4xmpCore:CreatorContactInfo>
  </rdf:Description>
- <rdf:Description rdf:about='' xmlns:MicrosoftPhoto='http://ns.microsoft.com/photo/1.0'>
+
+ <rdf:Description rdf:about=''
+  xmlns:MicrosoftPhoto='http://ns.microsoft.com/photo/1.0'>
   <MicrosoftPhoto:Rating>{ms_rating}</MicrosoftPhoto:Rating>
  </rdf:Description>
- <rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'>
+
+ <rdf:Description rdf:about=''
+  xmlns:dc='http://purl.org/dc/elements/1.1/'>
   <dc:creator><rdf:Seq><rdf:li>{artist}</rdf:li></rdf:Seq></dc:creator>
   <dc:description><rdf:Alt><rdf:li xml:lang='x-default'>{desc}</rdf:li></rdf:Alt></dc:description>
   <dc:rights><rdf:Alt><rdf:li xml:lang='x-default'>{copyright}</rdf:li></rdf:Alt></dc:rights>
   <dc:title><rdf:Alt><rdf:li xml:lang='x-default'>{title}</rdf:li></rdf:Alt></dc:title>
 {kw_block}
  </rdf:Description>
- <rdf:Description rdf:about='' xmlns:exif='http://ns.adobe.com/exif/1.0/'>
+
+ <rdf:Description rdf:about=''
+  xmlns:exif='http://ns.adobe.com/exif/1.0/'>
   <exif:GPSAltitude>{gps_alt_xmp}</exif:GPSAltitude>
   <exif:GPSAltitudeRef>0</exif:GPSAltitudeRef>
+  <exif:GPSImgDirection>{gps_direction}</exif:GPSImgDirection>
+  <exif:GPSImgDirectionRef>{gps_direction_ref}</exif:GPSImgDirectionRef>
   <exif:GPSLatitude>{gps_lat_xmp}</exif:GPSLatitude>
   <exif:GPSLongitude>{gps_lon_xmp}</exif:GPSLongitude>
   <exif:GPSMapDatum>WGS-84</exif:GPSMapDatum>
+  <exif:GPSTimeStamp>{gps_timestamp}</exif:GPSTimeStamp>
   <exif:GPSVersionID>2.2.0.0</exif:GPSVersionID>
  </rdf:Description>
- <rdf:Description rdf:about='' xmlns:photoshop='http://ns.adobe.com/photoshop/1.0/'>
+
+ <rdf:Description rdf:about=''
+  xmlns:photoshop='http://ns.adobe.com/photoshop/1.0/'>
+  <photoshop:AuthorsPosition>{authors_position}</photoshop:AuthorsPosition>
+  <photoshop:CaptionWriter>{artist}</photoshop:CaptionWriter>
+  <photoshop:Category>{category}</photoshop:Category>
   <photoshop:City>{city}</photoshop:City>
-  <photoshop:State>{state}</photoshop:State>
   <photoshop:Country>{country}</photoshop:Country>
   <photoshop:Credit>{artist}</photoshop:Credit>
-  <photoshop:Source>{artist}</photoshop:Source>
   <photoshop:Headline>{title}</photoshop:Headline>
-  <photoshop:Category>{category}</photoshop:Category>
-  <photoshop:CaptionWriter>{artist}</photoshop:CaptionWriter>
   <photoshop:Instructions>{desc}</photoshop:Instructions>
+  <photoshop:Source>{artist}</photoshop:Source>
+  <photoshop:State>{state}</photoshop:State>
 {sub_block}
  </rdf:Description>
- <rdf:Description rdf:about='' xmlns:tiff='http://ns.adobe.com/tiff/1.0/'>
+
+ <rdf:Description rdf:about=''
+  xmlns:tiff='http://ns.adobe.com/tiff/1.0/'>
   <tiff:Artist>{artist}</tiff:Artist>
  </rdf:Description>
- <rdf:Description rdf:about='' xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
+
+ <rdf:Description rdf:about=''
+  xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
   <xmp:Rating>{rating}</xmp:Rating>
   <xmp:BaseURL>{website}</xmp:BaseURL>
  </rdf:Description>
+
 </rdf:RDF>
 </x:xmpmeta>
 {' '*100}
@@ -202,7 +237,13 @@ def write_exif(src, meta, out_path):
                         (meta.get('artist'),piexif.ImageIFD.Artist),
                         (meta.get('copyright'),piexif.ImageIFD.Copyright),
                         (meta.get('date'),piexif.ImageIFD.DateTime)]:
-            if val: z[tag]=str(val).encode('utf-8','replace')
+            if val:
+                # Encode as UTF-8 with BOM marker for proper EXIF UTF-8 support
+                try:
+                    encoded = str(val).encode('utf-8')
+                    z[tag] = encoded
+                except:
+                    z[tag] = str(val).encode('latin-1', 'replace')
         lat=meta.get('lat'); lon=meta.get('lon'); alt=meta.get('alt')
         if lat and lon:
             lat,lon=float(lat),float(lon)
@@ -281,18 +322,21 @@ def apply():
 def download_all(sid):
     out_dir=os.path.join(UPLOAD_BASE,sid,'output')
     if not os.path.exists(out_dir): return 'Nenhum arquivo',404
-    files=[f for f in os.listdir(out_dir) if f.endswith('.jpg')]
-    if not files: return 'Pasta vazia',404
+    files=[f for f in os.listdir(out_dir) if f.lower().endswith('.jpg') or f.lower().endswith('.jpeg')]
+    if not files: return 'Pasta vazia — processe as fotos primeiro',404
     buf=io.BytesIO()
     with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as zf:
-        for f in files: zf.write(os.path.join(out_dir,f),f)
+        for f in files:
+            zf.write(os.path.join(out_dir,f), f)
     buf.seek(0)
-    return send_file(buf,as_attachment=True,download_name='crazypro_fotos.zip',mimetype='application/zip')
+    return send_file(buf, as_attachment=True, download_name='crazypro_fotos.zip', mimetype='application/zip')
 
 @app.route('/download_file/<sid>/<fn>')
 def download_file(sid,fn):
     p=os.path.join(UPLOAD_BASE,sid,'output',fn)
-    return send_file(p,as_attachment=True,download_name=fn) if os.path.exists(p) else ('não encontrado',404)
+    if not os.path.exists(p):
+        return ('não encontrado',404)
+    return send_file(p, as_attachment=True, download_name=fn, mimetype='image/jpeg')
 
 @app.route('/clear', methods=['POST'])
 def clear():
