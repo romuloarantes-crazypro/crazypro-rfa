@@ -361,12 +361,8 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
             <input type="text" id="date" placeholder="2026:04:30 10:30:00"></div>
           <div class="fg"><label>Site</label>
             <input type="url" id="website" placeholder="https://www.empresa.com.br"></div>
-          <div class="row2">
-            <div class="fg"><label>Email</label>
-              <input type="email" id="email" placeholder="contato@empresa.com.br"></div>
-            <div class="fg"><label>Telefone</label>
-              <input type="text" id="phone" placeholder="47 99999-9999"></div>
-          </div>
+          <div class="fg"><label>Email</label>
+            <input type="email" id="email" placeholder="contato@empresa.com.br"></div>
 
           <div class="fg">
             <label>Redes Sociais</label>
@@ -782,7 +778,7 @@ function renderGallery(){
 function selectFile(i){
   S.files.forEach(f=>f.active=false);S.files[i].active=true;
   const f=S.files[i];
-  ['desc','artist','copyright','date','city','state','country','address','website','email','phone','lat','lon','alt','mainCategory'].forEach(k=>{
+  ['desc','artist','copyright','date','city','state','country','address','website','email','lat','lon','alt','mainCategory'].forEach(k=>{
     const el=document.getElementById(k);if(el) el.value=f.exif?.[k]||'';
   });
   curRating=f.rating||0;S.rating=curRating;renderStars(curRating);
@@ -832,7 +828,6 @@ function getMeta(){
     neighborhood:neighborhood,
     website:document.getElementById('website').value,
     email:document.getElementById('email').value,
-    phone:document.getElementById('phone')?.value||'',
     social:JSON.stringify(socialList),
     mainCategory:document.getElementById('mainCategory').value,
     categories:subcatList.join(','),
