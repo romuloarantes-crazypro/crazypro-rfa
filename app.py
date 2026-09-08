@@ -370,11 +370,36 @@ def clear():
 
 @app.route('/cep/<cep>')
 def busca_cep(cep):
-    cep=cep.replace('-','').replace('.','')
+    cep=cep.replace('-','').replace('.','').strip()
+    if len(cep)!=8 or not cep.isdigit():
+        return jsonify({'erro':True}),400
+    # 1) ViaCEP
     try:
         r=req.get(f'https://viacep.com.br/ws/{cep}/json/',timeout=5)
-        return jsonify(r.json())
-    except: return jsonify({'erro':True}),400
+        d=r.json()
+        if not d.get('erro'): return jsonify(d)
+    except: pass
+    # 2) BrasilAPI
+    try:
+        r=req.get(f'https://brasilapi.com.br/api/cep/v2/{cep}',timeout=5)
+        d=r.json()
+        if d.get('cep'):
+            return jsonify({
+                'cep': d.get('cep',''),
+                'logradouro': d.get('street',''),
+                'complemento': d.get('location',{}).get('place','') if isinstance(d.get('location'),dict) else '',
+                'bairro': d.get('neighborhood',''),
+                'localidade': d.get('city',''),
+                'uf': d.get('state',''),
+            })
+    except: pass
+    # 3) OpenCEP
+    try:
+        r=req.get(f'https://opencep.com/v1/{cep}',timeout=5)
+        d=r.json()
+        if d.get('cep'): return jsonify(d)
+    except: pass
+    return jsonify({'erro':True}),400
 
 @app.route('/geocode')
 def geocode():
