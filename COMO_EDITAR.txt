@@ -1,0 +1,77 @@
+╔══════════════════════════════════════════════════════════════╗
+║        CRAZYPRO RFA — Guia de Edição (Windows)             ║
+╚══════════════════════════════════════════════════════════════╝
+
+PASTA DE INSTALAÇÃO: D:\CrazyPro-RFA\
+
+══════════════════════════════════════════════════════════════
+ PARA USAR O APP (modo normal)
+══════════════════════════════════════════════════════════════
+  Clique 2x em: INICIAR.bat
+  Acesse:       http://localhost:8080
+
+══════════════════════════════════════════════════════════════
+ PARA EDITAR O APP (modo desenvolvimento)
+══════════════════════════════════════════════════════════════
+  Clique 2x em: DEV_EDITAR.bat
+  - O servidor reinicia automaticamente ao salvar qualquer arquivo
+  - Edite e salve → atualize o browser → veja as mudanças
+
+══════════════════════════════════════════════════════════════
+ ARQUIVOS QUE VOCÊ PODE EDITAR
+══════════════════════════════════════════════════════════════
+
+  app.py
+  └── Servidor Flask (Python)
+      • Rotas e lógica de negócio
+      • Processamento de metadados EXIF/XMP
+      • APIs de CEP, geocodificação
+      • Download de arquivos
+
+  templates\index.html
+  └── Interface do usuário (HTML + CSS + JavaScript)
+      • Layout completo da aplicação
+      • Sidebar de navegação
+      • Formulários de metadados
+      • Galeria de fotos
+      • Lógica de upload e processamento
+
+  static\icon_rfa.png
+  └── Ícone/logo do app (pode substituir por outro PNG)
+
+══════════════════════════════════════════════════════════════
+ EDITOR RECOMENDADO
+══════════════════════════════════════════════════════════════
+  Visual Studio Code — gratuito, excelente para Python e HTML
+  Download: https://code.visualstudio.com/
+
+  Após instalar o VS Code:
+  1. Abra a pasta D:\CrazyPro-RFA no VS Code
+  2. Instale as extensões: Python, Prettier
+  3. Edite os arquivos e salve (Ctrl+S)
+  4. O servidor atualiza automaticamente (se DEV_EDITAR.bat estiver rodando)
+
+══════════════════════════════════════════════════════════════
+ ONDE AS FOTOS SÃO SALVAS DURANTE O USO
+══════════════════════════════════════════════════════════════
+  Upload:     C:\Users\[seu usuario]\AppData\Local\Temp\cp_uploads\
+  Processadas: mesma pasta, subpasta "output\"
+  Download:   botão ⬇ no app ou "Baixar ZIP"
+
+══════════════════════════════════════════════════════════════
+ SOLUÇÃO DE PROBLEMAS
+══════════════════════════════════════════════════════════════
+  • "python não encontrado"
+    → Reinstale Python marcando "Add Python to PATH"
+    → Link: https://www.python.org/downloads/
+
+  • Porta 8080 em uso
+    → Edite INICIAR.bat e troque 8080 por 9000 (ou outro)
+
+  • Dependências faltando
+    → Abra CMD na pasta e execute:
+      pip install flask pillow piexif requests openpyxl werkzeug
+
+══════════════════════════════════════════════════════════════
+ © 2026 RFA Marketing Digital · CNPJ: 64.810.923/0001-91
+══════════════════════════════════════════════════════════════
