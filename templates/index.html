@@ -528,9 +528,14 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
           <div style="background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r2);padding:12px 14px">
             <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--navy);margin-bottom:6px">PASSO 2 — BAIXAR IMAGENS</div>
             <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Após processar, clique para baixar as fotos em JPG no formato selecionado acima.</p>
-            <button class="btn-process" onclick="downloadFotos()" style="font-size:13px;padding:12px;margin-top:0;background:linear-gradient(135deg,#1a7a4a,#27ae60)">
-              ⬇ BAIXAR FOTOS (JPG)
-            </button>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button class="btn-process" onclick="downloadFotos()" style="font-size:13px;padding:12px;margin-top:0;background:linear-gradient(135deg,#1a7a4a,#27ae60)">
+                ⬇ BAIXAR FOTOS (JPG)
+              </button>
+              <button class="btn-process" onclick="downloadZip()" style="font-size:13px;padding:12px;margin-top:0;background:linear-gradient(135deg,#5a5a8a,#3d3d6b)">
+                🗜 BAIXAR EM ZIP
+              </button>
+            </div>
             <div id="downloadResults" style="margin-top:8px"></div>
           </div>
         </div>
@@ -1146,6 +1151,7 @@ function renderSubcats(){
 async function openFolder(path){ toast('Use o botão de download'); }
 function openLastFolder(){}
 function downloadAll(){ if(S.sid) window.location.href='/download_all/'+S.sid; else toast('Processe as fotos primeiro','err'); }
+function downloadZip(){ if(S.sid) window.location.href='/download_all/'+S.sid; else toast('Processe as fotos primeiro','err'); }
 
 async function downloadFotos(){
   if(!S.sid){ toast('Processe as fotos primeiro','err'); return; }
