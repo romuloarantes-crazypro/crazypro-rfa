@@ -224,10 +224,25 @@ def inject_xmp_full(jpeg_bytes, meta):
     except Exception as e:
         print(f"inject_xmp error: {e}"); return jpeg_bytes
 
+def resize_crop_center(img, w, h):
+    """Resize image to exact w×h using center crop (no distortion, no borders)."""
+    from PIL import ImageOps
+    return ImageOps.fit(img, (w, h), Image.LANCZOS)
+
 def write_exif(src, meta, out_path):
     try:
         img=Image.open(src)
         if img.mode not in('RGB','L'): img=img.convert('RGB')
+
+        # Resize for Google Meu Negócio if requested
+        if meta.get('gmn_resize') == '1':
+            try:
+                tw = int(meta.get('gmn_w', 1080))
+                th = int(meta.get('gmn_h', 1080))
+                img = resize_crop_center(img, tw, th)
+            except Exception as e:
+                print(f"resize warning: {e}")
+
         try:
             raw=img.info.get('exif',b'')
             exif=piexif.load(raw) if raw else {'0th':{},'Exif':{},'GPS':{},'1st':{}}
@@ -238,7 +253,6 @@ def write_exif(src, meta, out_path):
                         (meta.get('copyright'),piexif.ImageIFD.Copyright),
                         (meta.get('date'),piexif.ImageIFD.DateTime)]:
             if val:
-                # Encode as UTF-8 with BOM marker for proper EXIF UTF-8 support
                 try:
                     encoded = str(val).encode('utf-8')
                     z[tag] = encoded

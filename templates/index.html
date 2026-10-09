@@ -183,6 +183,13 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 .qual-row{display:flex;align-items:center;gap:8px}
 .qual-row input[type=range]{flex:1;accent-color:var(--blue)}
 .qual-val{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:600;min-width:28px;text-align:right}
+.gmn-preset{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--panel);transition:.15s}
+.gmn-preset:hover{border-color:var(--blue);background:var(--pale2)}
+.gmn-preset.active{border-color:var(--blue);background:rgba(46,109,164,.08)}
+.gmn-preset-icon{font-size:18px;flex-shrink:0;opacity:.7}
+.gmn-preset div{display:flex;flex-direction:column;gap:1px}
+.gmn-preset strong{font-size:12px;color:var(--text);font-weight:700}
+.gmn-preset span{font-size:10px;color:var(--muted)}
 
 /* OUTDIR */
 .outdir-box{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:11px;font-family:var(--mono);color:var(--muted);word-break:break-all;min-height:34px;margin-bottom:8px}
@@ -456,7 +463,49 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
               <input type="range" id="quality" min="80" max="100" value="95" oninput="document.getElementById('qv').textContent=this.value">
               <span class="qual-val" id="qv">95</span>
             </div>
-            <div style="font-size:10px;color:var(--dim);margin-top:3px">Dimensões e resolução originais sempre preservadas</div>
+          </div>
+
+          <!-- RESIZE GMN -->
+          <div class="fg" style="background:var(--pale2);border:1.5px solid var(--light);border-radius:var(--r2);padding:11px 13px;margin-bottom:4px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <label style="margin:0;font-size:12px;font-weight:700;color:var(--navy)">📐 Redimensionar para Google Meu Negócio</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0">
+                <input type="checkbox" id="gmnResize" onchange="toggleGmnResize()" style="width:16px;height:16px;accent-color:var(--blue)">
+                <span style="font-size:11px;color:var(--muted)" id="gmnResizeLabel">Desativado</span>
+              </label>
+            </div>
+            <div id="gmnPresets" style="display:none">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:7px">Escolha o formato de saída:</div>
+              <div style="display:flex;flex-direction:column;gap:5px" id="gmnPresetBtns">
+                <label class="gmn-preset active" data-w="1080" data-h="1080">
+                  <input type="radio" name="gmnPreset" value="1080x1080" checked style="display:none">
+                  <span class="gmn-preset-icon">⬛</span>
+                  <div>
+                    <strong>1080 × 1080 px</strong>
+                    <span>Posts e fotos do negócio (padrão GMN)</span>
+                  </div>
+                </label>
+                <label class="gmn-preset" data-w="1200" data-h="900">
+                  <input type="radio" name="gmnPreset" value="1200x900" style="display:none">
+                  <span class="gmn-preset-icon">▬</span>
+                  <div>
+                    <strong>1200 × 900 px</strong>
+                    <span>Fotos do perfil 4:3 (recomendado Google)</span>
+                  </div>
+                </label>
+                <label class="gmn-preset" data-w="1080" data-h="608">
+                  <input type="radio" name="gmnPreset" value="1080x608" style="display:none">
+                  <span class="gmn-preset-icon">▬</span>
+                  <div>
+                    <strong>1080 × 608 px</strong>
+                    <span>Foto de capa 16:9</span>
+                  </div>
+                </label>
+              </div>
+              <div style="margin-top:8px;font-size:10px;color:var(--dim)">
+                ✂️ Crop centralizado — sem distorção, sem bordas. Original não é alterado.
+              </div>
+            </div>
           </div>
 
           <!-- PASSO 1: PROCESSAR -->
@@ -836,9 +885,35 @@ function getMeta(){
     lon:document.getElementById('lon').value||null,
     alt:document.getElementById('alt').value||null,
     quality:document.getElementById('quality').value,
-    rating:curRating
+    rating:curRating,
+    gmn_resize:document.getElementById('gmnResize').checked ? '1' : '0',
+    gmn_w:getGmnDim('w'),
+    gmn_h:getGmnDim('h')
   };
 }
+
+function getGmnDim(axis){
+  const sel=document.querySelector('.gmn-preset.active');
+  if(!sel) return axis==='w'?1080:1080;
+  return axis==='w'? sel.dataset.w : sel.dataset.h;
+}
+
+function toggleGmnResize(){
+  const on=document.getElementById('gmnResize').checked;
+  document.getElementById('gmnPresets').style.display=on?'block':'none';
+  document.getElementById('gmnResizeLabel').textContent=on?'Ativado':'Desativado';
+}
+
+// Preset selection highlight
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.gmn-preset').forEach(lbl=>{
+    lbl.addEventListener('click',()=>{
+      document.querySelectorAll('.gmn-preset').forEach(l=>l.classList.remove('active'));
+      lbl.classList.add('active');
+      lbl.querySelector('input[type=radio]').checked=true;
+    });
+  });
+});
 
 // CEP
 function maskCep(el){let v=el.value.replace(/\D/g,'');if(v.length>5)v=v.slice(0,5)+'-'+v.slice(5,8);el.value=v}
