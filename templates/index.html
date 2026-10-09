@@ -362,9 +362,9 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
             <textarea id="desc" placeholder="Descreva o negócio, produtos, diferenciais..."></textarea></div>
           <div class="fg"><label>Fotógrafo / Autor</label>
             <input type="text" id="artist" placeholder="Nome ou empresa"></div>
-          <div class="fg"><label>Copyright</label>
-            <input type="text" id="copyright" value="© 2026 RFA Marketing Digital — CNPJ: 64.810.923/0001-91 — Todos os direitos reservados"></div>
-          <div class="fg"><label>Data (EXIF)</label>
+          <div class="fg"><label>Copyright <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">🔒 fixo</span></label>
+            <input type="text" id="copyright" readonly style="background:var(--pale2);color:var(--muted);cursor:default;user-select:none"></div>
+          <div class="fg"><label>Data (EXIF) <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">— preenchida automaticamente</span></label>
             <input type="text" id="date" placeholder="2026:04:30 10:30:00"></div>
           <div class="fg"><label>Site</label>
             <input type="url" id="website" placeholder="https://www.empresa.com.br"></div>
@@ -827,9 +827,10 @@ function renderGallery(){
 function selectFile(i){
   S.files.forEach(f=>f.active=false);S.files[i].active=true;
   const f=S.files[i];
-  ['desc','artist','copyright','date','city','state','country','address','website','email','lat','lon','alt','mainCategory'].forEach(k=>{
+  ['desc','artist','date','city','state','country','address','website','email','lat','lon','alt','mainCategory'].forEach(k=>{
     const el=document.getElementById(k);if(el) el.value=f.exif?.[k]||'';
   });
+  // copyright e date têm valores fixos/automáticos — não sobrescreve com EXIF da foto
   curRating=f.rating||0;S.rating=curRating;renderStars(curRating);
   if(f.exif?.keywords) setTagsFromArray('kw',f.exif.keywords.split?.(',')||f.exif.keywords);
   renderList();renderGallery();
@@ -906,6 +907,7 @@ function toggleGmnResize(){
 
 // Preset selection highlight
 document.addEventListener('DOMContentLoaded',()=>{
+  // Preset GMN click
   document.querySelectorAll('.gmn-preset').forEach(lbl=>{
     lbl.addEventListener('click',()=>{
       document.querySelectorAll('.gmn-preset').forEach(l=>l.classList.remove('active'));
@@ -913,6 +915,19 @@ document.addEventListener('DOMContentLoaded',()=>{
       lbl.querySelector('input[type=radio]').checked=true;
     });
   });
+
+  // Copyright fixo da RFA
+  const yr = new Date().getFullYear();
+  const cpEl = document.getElementById('copyright');
+  if(cpEl) cpEl.value = `© ${yr} RFA Marketing Digital — CNPJ: 64.810.923/0001-91 — Todos os direitos reservados`;
+
+  // Data atual no formato EXIF: YYYY:MM:DD HH:MM:SS
+  const dateEl = document.getElementById('date');
+  if(dateEl && !dateEl.value){
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    dateEl.value = `${now.getFullYear()}:${pad(now.getMonth()+1)}:${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  }
 });
 
 // CEP
