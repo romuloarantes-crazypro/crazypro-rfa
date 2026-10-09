@@ -24,15 +24,15 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
 
 /* SIDEBAR */
-#sidebar{width:70px;height:100vh;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;box-shadow:2px 0 12px rgba(30,58,95,.2)}
+#sidebar{width:120px;height:100vh;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;box-shadow:2px 0 12px rgba(30,58,95,.2)}
 .logo-box{width:48px;height:48px;border-radius:10px;overflow:hidden;margin-bottom:10px;cursor:default;box-shadow:0 4px 12px rgba(0,0,0,.3)}
 .logo-box img{width:100%;height:100%;object-fit:cover}
-.ni{width:56px;height:56px;border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:.2s;color:rgba(255,255,255,.5);border:none;background:transparent;padding:0}
-.ni:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.9)}
+.ni{width:104px;height:60px;border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:.2s;color:rgba(255,255,255,.55);border:none;background:transparent;padding:0 6px}
+.ni:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.95)}
 .ni.active{background:rgba(91,163,217,.3);color:#fff;box-shadow:inset 0 0 0 1px rgba(91,163,217,.4)}
-.ni-icon{font-size:18px;line-height:1}
-.ni-lbl{font-size:8px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;line-height:1;text-align:center}
-.nav-sep{width:38px;height:1px;background:rgba(255,255,255,.1);margin:4px 0}
+.ni-icon{font-size:22px;line-height:1}
+.ni-lbl{font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;line-height:1.2;text-align:center;white-space:normal;word-break:break-word}
+.nav-sep{width:80px;height:1px;background:rgba(255,255,255,.12);margin:4px 0}
 .nav-bot{margin-top:auto}
 
 /* SHELL */
@@ -238,12 +238,12 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
     <img src="{{ icon }}" alt="RFA">
   </div>
   <button class="ni active" onclick="navTo('loc',this)" title="Localização"><span class="ni-icon">📍</span><span class="ni-lbl">Local</span></button>
-  <button class="ni" onclick="navTo('desc',this)" title="Descrições"><span class="ni-icon">📝</span><span class="ni-lbl">Descri&shy;ção</span></button>
+  <button class="ni" onclick="navTo('desc',this)" title="Descrições"><span class="ni-icon">📝</span><span class="ni-lbl">Descrição</span></button>
   <button class="ni" onclick="navTo('kw',this)" title="Keywords"><span class="ni-icon">🔑</span><span class="ni-lbl">Keywords</span></button>
-  <button class="ni" onclick="navTo('cat',this)" title="Categorias"><span class="ni-icon">🏷️</span><span class="ni-lbl">Categ.</span></button>
+  <button class="ni" onclick="navTo('cat',this)" title="Categorias"><span class="ni-icon">🏷️</span><span class="ni-lbl">Categorias</span></button>
   <div class="nav-sep"></div>
   <button class="ni" onclick="navTo('nome',this)" title="Renomear Arquivo"><span class="ni-icon">✏️</span><span class="ni-lbl">Renomear</span></button>
-  <button class="ni" onclick="navTo('export',this)" title="Exportar Imagens"><span class="ni-icon">📤</span><span class="ni-lbl">Export</span></button>
+  <button class="ni" onclick="navTo('export',this)" title="Exportar Imagens"><span class="ni-icon">📤</span><span class="ni-lbl">Exportar</span></button>
   <button class="ni" onclick="navTo('save_model',this)" title="Salvar Modelo"><span class="ni-icon">💾</span><span class="ni-lbl">Salvar</span></button>
   <button class="ni" onclick="navTo('use_model',this)" title="Usar Modelo"><span class="ni-icon">📂</span><span class="ni-lbl">Modelos</span></button>
   <div class="nav-bot">
@@ -601,7 +601,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 </div>
 
 <!-- COPYRIGHT FOOTER -->
-<div style="position:fixed;bottom:0;left:70px;right:0;background:var(--navy);color:rgba(255,255,255,.55);
+<div style="position:fixed;bottom:0;left:120px;right:0;background:var(--navy);color:rgba(255,255,255,.55);
   font-size:10px;padding:5px 16px;display:flex;align-items:center;gap:8px;z-index:50;font-family:var(--mono)">
   <img src="{{ icon }}" style="width:14px;height:14px;border-radius:3px;opacity:.8" alt="">
   © 2026 RFA Marketing Digital &nbsp;·&nbsp; CNPJ: 64.810.923/0001-91 &nbsp;·&nbsp; Rômulo Falcão Arantes &nbsp;·&nbsp; Todos os direitos reservados
