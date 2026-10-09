@@ -364,6 +364,13 @@ def download_all(sid):
     buf.seek(0)
     return send_file(buf, as_attachment=True, download_name='crazypro_fotos.zip', mimetype='application/zip')
 
+@app.route('/list_output/<sid>')
+def list_output(sid):
+    out_dir=os.path.join(UPLOAD_BASE,sid,'output')
+    if not os.path.exists(out_dir): return jsonify([])
+    files=[f for f in sorted(os.listdir(out_dir)) if f.lower().endswith(('.jpg','.jpeg'))]
+    return jsonify(files)
+
 @app.route('/download_file/<sid>/<fn>')
 def download_file(sid,fn):
     p=os.path.join(UPLOAD_BASE,sid,'output',fn)

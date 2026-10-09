@@ -467,45 +467,41 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 
           <!-- RESIZE GMN -->
           <div class="fg" style="background:var(--pale2);border:1.5px solid var(--light);border-radius:var(--r2);padding:11px 13px;margin-bottom:4px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <label style="margin:0;font-size:12px;font-weight:700;color:var(--navy)">📐 Redimensionar para Google Meu Negócio</label>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0">
-                <input type="checkbox" id="gmnResize" onchange="toggleGmnResize()" style="width:16px;height:16px;accent-color:var(--blue)">
-                <span style="font-size:11px;color:var(--muted)" id="gmnResizeLabel">Desativado</span>
+            <div style="margin-bottom:8px">
+              <label style="margin:0;font-size:12px;font-weight:700;color:var(--navy)">📐 Formato de saída — Google Meu Negócio</label>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:7px">Selecione o tamanho desejado:</div>
+            <div style="display:flex;flex-direction:column;gap:5px" id="gmnPresetBtns">
+              <label class="gmn-preset active" data-w="1080" data-h="1080">
+                <input type="radio" name="gmnPreset" value="1080x1080" checked style="display:none">
+                <span class="gmn-preset-icon">⬛</span>
+                <div>
+                  <strong>1080 × 1080 px</strong>
+                  <span>Posts semanais (padrão GMN)</span>
+                </div>
+              </label>
+              <label class="gmn-preset" data-w="1200" data-h="900">
+                <input type="radio" name="gmnPreset" value="1200x900" style="display:none">
+                <span class="gmn-preset-icon">▬</span>
+                <div>
+                  <strong>1200 × 900 px</strong>
+                  <span>Fotos do perfil 4:3</span>
+                </div>
+              </label>
+              <label class="gmn-preset" data-w="1080" data-h="608">
+                <input type="radio" name="gmnPreset" value="1080x608" style="display:none">
+                <span class="gmn-preset-icon">▬</span>
+                <div>
+                  <strong>1080 × 608 px</strong>
+                  <span>Foto de capa 16:9</span>
+                </div>
               </label>
             </div>
-            <div id="gmnPresets" style="display:none">
-              <div style="font-size:10px;color:var(--muted);margin-bottom:7px">Escolha o formato de saída:</div>
-              <div style="display:flex;flex-direction:column;gap:5px" id="gmnPresetBtns">
-                <label class="gmn-preset active" data-w="1080" data-h="1080">
-                  <input type="radio" name="gmnPreset" value="1080x1080" checked style="display:none">
-                  <span class="gmn-preset-icon">⬛</span>
-                  <div>
-                    <strong>1080 × 1080 px</strong>
-                    <span>Posts e fotos do negócio (padrão GMN)</span>
-                  </div>
-                </label>
-                <label class="gmn-preset" data-w="1200" data-h="900">
-                  <input type="radio" name="gmnPreset" value="1200x900" style="display:none">
-                  <span class="gmn-preset-icon">▬</span>
-                  <div>
-                    <strong>1200 × 900 px</strong>
-                    <span>Fotos do perfil 4:3 (recomendado Google)</span>
-                  </div>
-                </label>
-                <label class="gmn-preset" data-w="1080" data-h="608">
-                  <input type="radio" name="gmnPreset" value="1080x608" style="display:none">
-                  <span class="gmn-preset-icon">▬</span>
-                  <div>
-                    <strong>1080 × 608 px</strong>
-                    <span>Foto de capa 16:9</span>
-                  </div>
-                </label>
-              </div>
-              <div style="margin-top:8px;font-size:10px;color:var(--dim)">
-                ✂️ Crop centralizado — sem distorção, sem bordas. Original não é alterado.
-              </div>
+            <div style="margin-top:8px;font-size:10px;color:var(--dim)">
+              ✂️ Crop centralizado — sem distorção, sem bordas. Original não é alterado.
             </div>
+            <!-- campo oculto sempre ativo -->
+            <input type="hidden" id="gmnResize" value="1">
           </div>
 
           <!-- PASSO 1: PROCESSAR -->
@@ -530,18 +526,12 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 
           <!-- PASSO 2: EXPORTAR -->
           <div style="background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r2);padding:12px 14px">
-            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--navy);margin-bottom:6px">PASSO 2 — EXPORTAR ARQUIVOS</div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Escolha a pasta de destino e exporte as fotos já processadas.</p>
-            <div class="fg">
-              <label>Download dos Arquivos</label>
-              <div style="background:var(--pale2);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--navy);line-height:1.6;margin-bottom:8px">
-                💡 Após processar, clique em <strong>⬇</strong> em cada foto para baixar individualmente, ou use <strong>Baixar ZIP</strong> para todas.
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-navy btn-sm" onclick="downloadAll()">⬇ Baixar ZIP</button>
-
-            </div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--navy);margin-bottom:6px">PASSO 2 — BAIXAR IMAGENS</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Após processar, clique para baixar as fotos em JPG no formato selecionado acima.</p>
+            <button class="btn-process" onclick="downloadFotos()" style="font-size:13px;padding:12px;margin-top:0;background:linear-gradient(135deg,#1a7a4a,#27ae60)">
+              ⬇ BAIXAR FOTOS (JPG)
+            </button>
+            <div id="downloadResults" style="margin-top:8px"></div>
           </div>
         </div>
 
@@ -778,6 +768,7 @@ async function handleFiles(files){
   const res=await fetch('/upload',{method:'POST',body:fd});
   fill.style.width='90%';const data=await res.json();
   fill.style.width='100%';setTimeout(()=>prog.style.display='none',600);
+  if(data.sid) S.sid=data.sid;
   data.files.forEach(f=>{if(!S.files.find(x=>x.name===f.name)) S.files.push({...f,checked:true,rating:0})});
   renderList();renderGallery();updateCounts();updateExportCount();
   toast(`✓ ${data.files.length} foto(s) importada(s)`);
@@ -887,7 +878,7 @@ function getMeta(){
     alt:document.getElementById('alt').value||null,
     quality:document.getElementById('quality').value,
     rating:curRating,
-    gmn_resize:document.getElementById('gmnResize').checked ? '1' : '0',
+    gmn_resize:'1',
     gmn_w:getGmnDim('w'),
     gmn_h:getGmnDim('h')
   };
@@ -897,12 +888,6 @@ function getGmnDim(axis){
   const sel=document.querySelector('.gmn-preset.active');
   if(!sel) return axis==='w'?1080:1080;
   return axis==='w'? sel.dataset.w : sel.dataset.h;
-}
-
-function toggleGmnResize(){
-  const on=document.getElementById('gmnResize').checked;
-  document.getElementById('gmnPresets').style.display=on?'block':'none';
-  document.getElementById('gmnResizeLabel').textContent=on?'Ativado':'Desativado';
 }
 
 // Preset selection highlight
@@ -1057,6 +1042,7 @@ async function processarFotos(){
       const res=await fetch('/apply',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({files:[f.name],meta,rename:rename||'',out_dir:'',index:i,sid:S.sid})});
       const data=await res.json();
+      if(data.sid) S.sid=data.sid;
       if(data.out_dir&&!S.lastOutDir) S.lastOutDir=data.out_dir;
       results.push(...(data.results||[]));
     }catch(e){
@@ -1160,6 +1146,33 @@ function renderSubcats(){
 async function openFolder(path){ toast('Use o botão de download'); }
 function openLastFolder(){}
 function downloadAll(){ if(S.sid) window.location.href='/download_all/'+S.sid; else toast('Processe as fotos primeiro','err'); }
+
+async function downloadFotos(){
+  if(!S.sid){ toast('Processe as fotos primeiro','err'); return; }
+  const res=await fetch('/download_all/'+S.sid);
+  if(!res.ok){ toast('Nenhuma foto processada ainda','err'); return; }
+  // busca lista de arquivos processados e baixa um a um
+  const listRes=await fetch('/list_output/'+S.sid);
+  if(!listRes.ok){
+    // fallback: baixa como ZIP se rota de lista não existir
+    window.location.href='/download_all/'+S.sid; return;
+  }
+  const files=await listRes.json();
+  if(!files.length){ toast('Nenhuma foto processada ainda','err'); return; }
+  const dr=document.getElementById('downloadResults');
+  dr.innerHTML=`<div style="font-size:10px;color:var(--muted);margin-top:4px">Baixando ${files.length} arquivo(s)...</div>`;
+  for(const fn of files){
+    const a=document.createElement('a');
+    a.href=`/download_file/${S.sid}/${fn}`;
+    a.download=fn;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    await new Promise(r=>setTimeout(r,400));
+  }
+  dr.innerHTML=`<div style="font-size:10px;color:var(--green);margin-top:4px">✅ ${files.length} foto(s) baixada(s)</div>`;
+  toast(`✅ ${files.length} foto(s) baixada(s)`);
+}
 
 // RENAME PREVIEW
 function previewRename(){
