@@ -120,6 +120,20 @@ def build_full_xmp(meta):
     ms_rating=99 if rating==5 else(75 if rating==4 else(50 if rating==3 else(25 if rating==2 else(1 if rating==1 else 0))))
     country_code=country[:3].upper() if country else 'BRA'
 
+    # photoshop:DateCreated — ISO 8601 form of the EXIF date
+    date_raw=meta.get('date','')
+    photoshop_date=''
+    try:
+        if date_raw:
+            parts=date_raw.replace(' ',':').split(':')
+            photoshop_date=f'{parts[0]}-{parts[1]}-{parts[2]}T{parts[3]}:{parts[4]}:{parts[5]}'
+    except: pass
+
+    # xmpMM document IDs — unique per export
+    import uuid as _uuid
+    doc_id=f'xmp.did:{_uuid.uuid4()}'
+    inst_id=f'xmp.iid:{_uuid.uuid4()}'
+
     return f"""<?xpacket begin='\xef\xbb\xbf' id='W5M0MpCehiHzreSzNTczkc9d'?>
 <x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 10.96'>
 <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
@@ -175,6 +189,7 @@ def build_full_xmp(meta):
   <photoshop:City>{city}</photoshop:City>
   <photoshop:Country>{country}</photoshop:Country>
   <photoshop:Credit>{artist}</photoshop:Credit>
+  <photoshop:DateCreated>{photoshop_date}</photoshop:DateCreated>
   <photoshop:Headline>{title}</photoshop:Headline>
   <photoshop:Instructions>{desc}</photoshop:Instructions>
   <photoshop:Source>{artist}</photoshop:Source>
@@ -191,6 +206,20 @@ def build_full_xmp(meta):
   xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
   <xmp:Rating>{rating}</xmp:Rating>
   <xmp:BaseURL>{website}</xmp:BaseURL>
+  <xmp:CreatorTool>CrazyPro RFA</xmp:CreatorTool>
+ </rdf:Description>
+
+ <rdf:Description rdf:about=''
+  xmlns:xmpRights='http://ns.adobe.com/xap/1.0/rights/'>
+  <xmpRights:Marked>True</xmpRights:Marked>
+  <xmpRights:WebStatement>{website}</xmpRights:WebStatement>
+  <xmpRights:UsageTerms><rdf:Alt><rdf:li xml:lang='x-default'>{copyright}</rdf:li></rdf:Alt></xmpRights:UsageTerms>
+ </rdf:Description>
+
+ <rdf:Description rdf:about=''
+  xmlns:xmpMM='http://ns.adobe.com/xap/1.0/mm/'>
+  <xmpMM:DocumentID>{doc_id}</xmpMM:DocumentID>
+  <xmpMM:InstanceID>{inst_id}</xmpMM:InstanceID>
  </rdf:Description>
 
 </rdf:RDF>
@@ -247,7 +276,7 @@ def write_exif(src, meta, out_path):
             raw=img.info.get('exif',b'')
             exif=piexif.load(raw) if raw else {'0th':{},'Exif':{},'GPS':{},'1st':{}}
         except: exif={'0th':{},'Exif':{},'GPS':{},'1st':{}}
-        z,gps=exif.get('0th',{}),exif.get('GPS',{})
+        z,gps,exif_ifd=exif.get('0th',{}),exif.get('GPS',{}),exif.get('Exif',{})
         for val,tag in [(meta.get('desc'),piexif.ImageIFD.ImageDescription),
                         (meta.get('artist'),piexif.ImageIFD.Artist),
                         (meta.get('copyright'),piexif.ImageIFD.Copyright),
@@ -258,18 +287,37 @@ def write_exif(src, meta, out_path):
                     z[tag] = encoded
                 except:
                     z[tag] = str(val).encode('latin-1', 'replace')
+        # Software tag — authorship trail
+        z[piexif.ImageIFD.Software] = b'CrazyPro RFA'
+        # DateTimeOriginal + DateTimeDigitized in Exif sub-IFD (used by Google as "photo taken on")
+        date_val = meta.get('date','')
+        if date_val:
+            try:
+                dt_bytes = str(date_val).encode('utf-8')
+                exif_ifd[piexif.ExifIFD.DateTimeOriginal]  = dt_bytes
+                exif_ifd[piexif.ExifIFD.DateTimeDigitized] = dt_bytes
+            except: pass
         lat=meta.get('lat'); lon=meta.get('lon'); alt=meta.get('alt')
         if lat and lon:
             lat,lon=float(lat),float(lon)
-            gps[piexif.GPSIFD.GPSLatitudeRef]=b'N' if lat>=0 else b'S'
-            gps[piexif.GPSIFD.GPSLatitude]=deg_to_dms(lat)
-            gps[piexif.GPSIFD.GPSLongitudeRef]=b'E' if lon>=0 else b'W'
-            gps[piexif.GPSIFD.GPSLongitude]=deg_to_dms(lon)
+            gps[piexif.GPSIFD.GPSVersionID]      = (2,2,0,0)
+            gps[piexif.GPSIFD.GPSLatitudeRef]    = b'N' if lat>=0 else b'S'
+            gps[piexif.GPSIFD.GPSLatitude]       = deg_to_dms(lat)
+            gps[piexif.GPSIFD.GPSLongitudeRef]   = b'E' if lon>=0 else b'W'
+            gps[piexif.GPSIFD.GPSLongitude]      = deg_to_dms(lon)
+            gps[piexif.GPSIFD.GPSMapDatum]       = b'WGS-84'
+            gps[piexif.GPSIFD.GPSImgDirectionRef]= b'M'
+            gps[piexif.GPSIFD.GPSImgDirection]   = (0, 1)
+            from datetime import timezone as _tz
+            _now = datetime.now(_tz.utc)
+            gps[piexif.GPSIFD.GPSTimeStamp] = (
+                (_now.hour,1), (_now.minute,1), (_now.second,1))
+            gps[piexif.GPSIFD.GPSDateStamp] = _now.strftime('%Y:%m:%d').encode()
         if alt:
             av=float(alt)
             gps[piexif.GPSIFD.GPSAltitude]=(int(abs(av)*100),100)
             gps[piexif.GPSIFD.GPSAltitudeRef]=0 if av>=0 else 1
-        exif['0th']=z; exif['GPS']=gps
+        exif['0th']=z; exif['GPS']=gps; exif['Exif']=exif_ifd
         buf=io.BytesIO()
         img.save(buf,'JPEG',exif=piexif.dump(exif),quality=int(meta.get('quality',95)),optimize=False,subsampling=0)
         jpeg_bytes=inject_xmp_full(buf.getvalue(), meta)
