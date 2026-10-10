@@ -129,6 +129,8 @@ def build_full_xmp(meta):
             photoshop_date=f'{parts[0]}-{parts[1]}-{parts[2]}T{parts[3]}:{parts[4]}:{parts[5]}'
     except: pass
 
+    now_iso=datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
     # xmpMM document IDs — unique per export
     import uuid as _uuid
     doc_id=f'xmp.did:{_uuid.uuid4()}'
@@ -170,6 +172,8 @@ def build_full_xmp(meta):
 
  <rdf:Description rdf:about=''
   xmlns:exif='http://ns.adobe.com/exif/1.0/'>
+  <exif:DateTimeOriginal>{photoshop_date}</exif:DateTimeOriginal>
+  <exif:DateTimeDigitized>{photoshop_date}</exif:DateTimeDigitized>
   <exif:GPSAltitude>{gps_alt_xmp}</exif:GPSAltitude>
   <exif:GPSAltitudeRef>0</exif:GPSAltitudeRef>
   <exif:GPSImgDirection>{gps_direction}</exif:GPSImgDirection>
@@ -207,6 +211,9 @@ def build_full_xmp(meta):
   <xmp:Rating>{rating}</xmp:Rating>
   <xmp:BaseURL>{website}</xmp:BaseURL>
   <xmp:CreatorTool>CrazyPro RFA</xmp:CreatorTool>
+  <xmp:CreateDate>{photoshop_date}</xmp:CreateDate>
+  <xmp:ModifyDate>{now_iso}</xmp:ModifyDate>
+  <xmp:MetadataDate>{now_iso}</xmp:MetadataDate>
  </rdf:Description>
 
  <rdf:Description rdf:about=''
@@ -253,6 +260,44 @@ def inject_xmp_full(jpeg_bytes, meta):
     except Exception as e:
         print(f"inject_xmp error: {e}"); return jpeg_bytes
 
+def build_iptc(meta):
+    """IPTC-IIM (APP13 / Photoshop 3.0), UTF-8, como o GeoSetter grava."""
+    import struct
+    def rec(ds, val):
+        b=str(val).encode('utf-8')[:2000]
+        return b'\x1c\x02'+bytes([ds])+struct.pack('>H',len(b))+b
+    date_raw=meta.get('date','') or ''
+    out=b'\x1c\x01\x5a\x00\x03\x1b%G'  # CodedCharacterSet = UTF-8
+    title=meta.get('title') or (meta.get('desc') or '')[:80]
+    social=''
+    try:
+        socials=json.loads(meta.get('social') or '[]')
+        if socials: social=socials[0].get('net','')
+    except: pass
+    fields=[(5,title),(40,meta.get('desc')),(80,meta.get('artist')),(85,social),(90,meta.get('city')),
+            (95,meta.get('state')),(101,meta.get('country')),(105,title),(110,meta.get('artist')),
+            (115,meta.get('artist')),(116,meta.get('copyright')),(120,meta.get('desc')),(122,meta.get('artist'))]
+    for ds,val in fields:
+        if val: out+=rec(ds,val)
+    try:
+        p=date_raw.replace(' ',':').split(':')
+        out+=rec(55,f'{p[0]}{p[1]}{p[2]}')+rec(60,f'{p[3]}{p[4]}{p[5]}')
+    except: pass
+    for c in (meta.get('categories') or '').split(','):
+        if c.strip(): out+=rec(20,c.strip())
+    for k in (meta.get('keywords') or '').split(','):
+        if k.strip(): out+=rec(25,k.strip())
+    if len(out)%2: out+=b'\x00'
+    return b'8BIM\x04\x04\x00\x00'+struct.pack('>I',len(out))+out
+
+def inject_iptc(jpeg_bytes, meta):
+    try:
+        block=b'Photoshop 3.0\x00'+build_iptc(meta)
+        seg=b'\xff\xed'+(len(block)+2).to_bytes(2,'big')+block
+        return jpeg_bytes[:2]+seg+jpeg_bytes[2:]
+    except Exception as e:
+        print(f"inject_iptc error: {e}"); return jpeg_bytes
+
 def resize_crop_center(img, w, h):
     """Resize image to exact w×h using center crop (no distortion, no borders)."""
     from PIL import ImageOps
@@ -289,6 +334,17 @@ def write_exif(src, meta, out_path):
                     z[tag] = str(val).encode('latin-1', 'replace')
         # Software tag — authorship trail
         z[piexif.ImageIFD.Software] = b'CrazyPro RFA'
+        # Windows Explorer tags (UTF-16LE) + UserComment, como o GeoSetter grava
+        def _xp(s): return str(s).encode('utf-16le') + b'\x00\x00'
+        kw_str=';'.join(k.strip() for k in (meta.get('keywords') or '').split(',') if k.strip())
+        title_val=meta.get('title') or (meta.get('desc') or '')[:80]
+        if title_val: z[piexif.ImageIFD.XPTitle]=_xp(title_val)
+        if meta.get('desc'):
+            z[piexif.ImageIFD.XPComment]=_xp(meta['desc'])
+            exif_ifd[piexif.ExifIFD.UserComment]=b'UNICODE\x00'+str(meta['desc']).encode('utf-16le')
+        if meta.get('artist'): z[piexif.ImageIFD.XPAuthor]=_xp(meta['artist'])
+        if kw_str: z[piexif.ImageIFD.XPKeywords]=_xp(kw_str)
+        if meta.get('mainCategory'): z[piexif.ImageIFD.XPSubject]=_xp(meta['mainCategory'])
         # DateTimeOriginal + DateTimeDigitized in Exif sub-IFD (used by Google as "photo taken on")
         date_val = meta.get('date','')
         if date_val:
@@ -320,7 +376,8 @@ def write_exif(src, meta, out_path):
         exif['0th']=z; exif['GPS']=gps; exif['Exif']=exif_ifd
         buf=io.BytesIO()
         img.save(buf,'JPEG',exif=piexif.dump(exif),quality=int(meta.get('quality',95)),optimize=False,subsampling=0)
-        jpeg_bytes=inject_xmp_full(buf.getvalue(), meta)
+        jpeg_bytes=inject_iptc(buf.getvalue(), meta)
+        jpeg_bytes=inject_xmp_full(jpeg_bytes, meta)
         with open(out_path,'wb') as f: f.write(jpeg_bytes)
         return True
     except Exception as e:
