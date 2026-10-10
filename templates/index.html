@@ -55,11 +55,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #center{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--panel);transition:.2s}
 #right{width:320px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:.2s}
 
-/* MODO TELA CHEIA (botões que não são Local) */
+/* MODO CENTRAL (botões que não são Local) */
 #panels.full-mode #left{display:none}
-#panels.full-mode #center{display:none}
-#panels.full-mode #right{width:100%;border-left:none}
-#panels.full-mode .form-area{max-width:760px;margin:0 auto;padding:28px 32px 60px}
+#panels.full-mode #right{display:none}
+#panels.full-mode #center-form{display:flex;flex-direction:column}
+#panels.full-mode #gallery-wrap{display:none}
+#center-form .form-area{max-width:720px;width:100%;margin:0 auto;padding:32px 36px 60px}
 
 /* LEFT PANEL */
 .ph{padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;flex-shrink:0}
@@ -296,23 +297,27 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
       <div id="photoList"><div class="empty"><div class="ei">📷</div><p>Nenhuma foto.</p></div></div>
     </div>
 
-    <!-- CENTER: GALLERY -->
+    <!-- CENTER: GALLERY + FORM (full-mode) -->
     <div id="center">
-      <div class="gallery-bar">
-        <span class="gallery-bar-title">🖼️ Galeria de Fotos</span>
-        <span style="font-size:11px;color:var(--muted);margin-left:8px" id="galInfo">Importe fotos para começar</span>
-      </div>
-      <div id="gallery">
-        <div class="gallery-empty">
-          <div class="ei">🖼️</div>
-          <p>Nenhuma foto importada ainda.<br>Use o painel esquerdo para importar.</p>
+      <div id="gallery-wrap" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+        <div class="gallery-bar">
+          <span class="gallery-bar-title">🖼️ Galeria de Fotos</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:8px" id="galInfo">Importe fotos para começar</span>
+        </div>
+        <div id="gallery">
+          <div class="gallery-empty">
+            <div class="ei">🖼️</div>
+            <p>Nenhuma foto importada ainda.<br>Use o painel esquerdo para importar.</p>
+          </div>
         </div>
       </div>
+      <!-- Container que recebe o formulário no modo tela cheia -->
+      <div id="center-form" style="display:none;flex:1;overflow-y:auto"></div>
     </div>
 
-    <!-- RIGHT: FORM PANELS -->
+    <!-- RIGHT: FORM PANELS (Local mode only) -->
     <div id="right">
-      <div class="form-area">
+      <div class="form-area" id="form-area">
 
         <!-- LOCALIZAÇÃO -->
         <div class="rp active" id="rp-loc">
@@ -677,12 +682,20 @@ function navTo(id,el){
   document.querySelectorAll('.rp').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('rp-'+id).classList.add('active');
-  // Local = layout 3 painéis; demais = tela cheia
-  const panels = document.getElementById('panels');
+
+  const panels    = document.getElementById('panels');
+  const formArea  = document.getElementById('form-area');
+  const right     = document.getElementById('right');
+  const centerForm= document.getElementById('center-form');
+
   if(id==='loc'){
+    // Devolve o formulário para o painel direito (Local)
+    if(formArea.parentNode !== right) right.appendChild(formArea);
     panels.classList.remove('full-mode');
     setTimeout(()=>{if(!S.map) initMinimap(); S.map.invalidateSize();},150);
   } else {
+    // Move o formulário para o centro
+    if(formArea.parentNode !== centerForm) centerForm.appendChild(formArea);
     panels.classList.add('full-mode');
   }
   if(id==='use_model') loadModels();
