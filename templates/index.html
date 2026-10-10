@@ -647,7 +647,7 @@ function clearMainCat(){
   document.getElementById('mainCatConfirmed').style.display='none';
 }
 
-const S={files:[],map:null,mapM:null,outDir:'',lastOutDir:'',rating:0,kwTags:[],catTags:[],sid:''};
+const S={files:[],map:null,mapM:null,outDir:'',lastOutDir:'',rating:0,kwTags:[],catTags:[],sid:'',processedFiles:[]};
 
 // TOAST
 const toast=(msg,type='ok')=>{const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3500)};
@@ -1062,6 +1062,7 @@ async function processarFotos(){
   document.getElementById('btnProcess').disabled=false;
 
   const ok=results.filter(r=>r.ok).length;
+  S.processedFiles=results.filter(r=>r.ok).map(r=>r.out);
   const html=results.map(r=>`
     <div class="res-item">
       <span style="color:${r.ok?'var(--green)':'var(--red)'}">${r.ok?'✓':'✗'}</span>
@@ -1151,22 +1152,39 @@ function renderSubcats(){
 async function openFolder(path){ toast('Use o botão de download'); }
 function openLastFolder(){}
 function downloadAll(){ if(S.sid) window.location.href='/download_all/'+S.sid; else toast('Processe as fotos primeiro','err'); }
-function downloadZip(){ if(S.sid) window.location.href='/download_all/'+S.sid; else toast('Processe as fotos primeiro','err'); }
+function downloadZip(){
+  if(!S.sid || !S.processedFiles.length){ toast('Processe as fotos primeiro','err'); return; }
+  window.location.href='/download_all/'+S.sid+'?files='+encodeURIComponent(S.processedFiles.join(','));
+}
 
 async function downloadFotos(){
-  if(!S.sid){ toast('Processe as fotos primeiro','err'); return; }
-  const res=await fetch('/download_all/'+S.sid);
-  if(!res.ok){ toast('Nenhuma foto processada ainda','err'); return; }
-  // busca lista de arquivos processados e baixa um a um
-  const listRes=await fetch('/list_output/'+S.sid);
-  if(!listRes.ok){
-    // fallback: baixa como ZIP se rota de lista não existir
-    window.location.href='/download_all/'+S.sid; return;
-  }
-  const files=await listRes.json();
-  if(!files.length){ toast('Nenhuma foto processada ainda','err'); return; }
+  if(!S.sid || !S.processedFiles.length){ toast('Processe as fotos primeiro','err'); return; }
+  const files=S.processedFiles;
   const dr=document.getElementById('downloadResults');
-  dr.innerHTML=`<div style="font-size:10px;color:var(--muted);margin-top:4px">Baixando ${files.length} arquivo(s)...</div>`;
+
+  // Tenta salvar diretamente na pasta escolhida pelo usuário (Chrome 86+)
+  if(window.showDirectoryPicker){
+    try{
+      const dir=await window.showDirectoryPicker({mode:'readwrite'});
+      dr.innerHTML=`<div style="font-size:10px;color:var(--muted);margin-top:4px">Salvando ${files.length} foto(s) na pasta...</div>`;
+      for(const fn of files){
+        const resp=await fetch(`/download_file/${S.sid}/${fn}`);
+        const blob=await resp.blob();
+        const fh=await dir.getFileHandle(fn,{create:true});
+        const wr=await fh.createWritable();
+        await wr.write(blob);
+        await wr.close();
+      }
+      dr.innerHTML=`<div style="font-size:10px;color:var(--green);margin-top:4px">✅ ${files.length} foto(s) salvas na pasta escolhida</div>`;
+      toast(`✅ ${files.length} foto(s) salvas!`);
+      return;
+    }catch(e){
+      if(e.name==='AbortError') return; // usuário cancelou o seletor
+    }
+  }
+
+  // Fallback: download convencional (vai para pasta Downloads)
+  dr.innerHTML=`<div style="font-size:10px;color:var(--muted);margin-top:4px">Baixando ${files.length} foto(s)...</div>`;
   for(const fn of files){
     const a=document.createElement('a');
     a.href=`/download_file/${S.sid}/${fn}`;

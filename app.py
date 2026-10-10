@@ -355,7 +355,12 @@ def apply():
 def download_all(sid):
     out_dir=os.path.join(UPLOAD_BASE,sid,'output')
     if not os.path.exists(out_dir): return 'Nenhum arquivo',404
-    files=[f for f in os.listdir(out_dir) if f.lower().endswith('.jpg') or f.lower().endswith('.jpeg')]
+    # Filtra só os arquivos da rodada atual se informado
+    requested=request.args.get('files','')
+    if requested:
+        files=[f for f in requested.split(',') if f and os.path.exists(os.path.join(out_dir,f))]
+    else:
+        files=[f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg','.jpeg'))]
     if not files: return 'Pasta vazia — processe as fotos primeiro',404
     buf=io.BytesIO()
     with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as zf:
