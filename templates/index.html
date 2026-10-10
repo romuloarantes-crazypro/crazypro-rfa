@@ -55,11 +55,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #center{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--panel);transition:.2s}
 #right{width:320px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:.2s}
 
-/* MODO TELA CHEIA (botões que não são Local) */
+/* MODO TELA CHEIA */
 #panels.full-mode #left{display:none}
 #panels.full-mode #center{display:none}
-#panels.full-mode #right{width:100%;border-left:none}
-#panels.full-mode .form-area{max-width:760px;margin:0 auto;padding:28px 32px 60px}
+#panels.full-mode #right{width:100%;border-left:none;background:var(--bg);display:flex;flex-direction:column}
+#panels.full-mode .form-area{padding:20px 24px 60px;background:var(--bg);overflow-y:auto;flex:1}
 
 /* LEFT PANEL */
 .ph{padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;flex-shrink:0}
@@ -113,11 +113,29 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .gallery-empty .ei{font-size:48px;margin-bottom:12px;opacity:.3}
 .gallery-empty p{font-size:12px;line-height:1.7}
 
-/* CABEÇALHO DAS SEÇÕES EM TELA CHEIA */
-.full-header{display:none;padding:28px 32px 0;max-width:760px;margin:0 auto}
-#panels.full-mode .full-header{display:block}
-.full-header h2{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--navy);letter-spacing:-1px;margin-bottom:4px}
-.full-header p{font-size:13px;color:var(--muted)}
+/* SECTION BAR — topo do formulário no modo tela cheia */
+.full-header{display:none!important}
+#section-bar{display:none;height:52px;align-items:center;gap:12px;padding:0 24px;background:var(--surface);border-bottom:2px solid var(--pale);flex-shrink:0;box-shadow:0 1px 4px rgba(30,58,95,.06)}
+#panels.full-mode #section-bar{display:flex}
+.sb-icon{width:32px;height:32px;border-radius:8px;background:var(--pale);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sb-title{font-size:15px;font-weight:700;color:var(--navy);font-family:'Syne',sans-serif;letter-spacing:-.4px}
+.sb-hint{font-size:11px;color:var(--muted);margin-left:2px}
+
+/* FORM CARD */
+.form-card{}
+#panels.full-mode .form-card{max-width:680px;margin:0 auto;background:var(--surface);border-radius:var(--r2);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+
+/* GROUPS */
+.group{}
+#panels.full-mode .group{padding:18px 22px;border-bottom:1px solid var(--border)}
+#panels.full-mode .group:last-child{border-bottom:none;padding-bottom:22px}
+.group-label{display:none}
+#panels.full-mode .group-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+#panels.full-mode .group-label::after{content:'';flex:1;height:1px;background:var(--border)}
+#panels.full-mode .group .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Ocultar .stitle no modo tela cheia */
+#panels.full-mode .stitle{display:none}
 
 /* RIGHT PANEL */
 .form-area{flex:1;overflow-y:auto;padding:14px 14px 36px}
@@ -312,6 +330,15 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 
     <!-- RIGHT: FORM PANELS -->
     <div id="right">
+      <!-- SECTION BAR (visível apenas no modo tela cheia) -->
+      <div id="section-bar">
+        <div class="sb-icon" id="sb-icon">📝</div>
+        <div class="sb-title" id="sb-title">Seção</div>
+        <span class="sb-hint" id="sb-hint"></span>
+        <div style="margin-left:auto">
+          <button class="btn btn-ghost btn-sm" onclick="navTo('loc',document.querySelector('.ni'))">← Voltar ao mapa</button>
+        </div>
+      </div>
       <div class="form-area">
 
         <!-- LOCALIZAÇÃO -->
@@ -355,98 +382,116 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 
         <!-- DESCRIÇÕES -->
         <div class="rp" id="rp-desc">
-          <div class="full-header"><h2>📝 Descrição</h2><p>Dados textuais que serão gravados nos metadados das fotos selecionadas.</p></div>
-          <div class="stitle">📝 Descrições</div>
+          <div class="form-card">
 
-          <!-- Stars compact -->
-          <div class="fg">
-            <label>Classificação / Rating</label>
-            <div class="stars-compact">
-              <span class="sc-star" id="sc1" onclick="setStars(1)" onmouseover="hoverS(1)" onmouseout="hoverS(0)">★</span>
-              <span class="sc-star" id="sc2" onclick="setStars(2)" onmouseover="hoverS(2)" onmouseout="hoverS(0)">★</span>
-              <span class="sc-star" id="sc3" onclick="setStars(3)" onmouseover="hoverS(3)" onmouseout="hoverS(0)">★</span>
-              <span class="sc-star" id="sc4" onclick="setStars(4)" onmouseover="hoverS(4)" onmouseout="hoverS(0)">★</span>
-              <span class="sc-star" id="sc5" onclick="setStars(5)" onmouseover="hoverS(5)" onmouseout="hoverS(0)">★</span>
-              <span class="sc-label" id="scLabel">Sem classificação</span>
+            <!-- GRUPO: AVALIAÇÃO -->
+            <div class="group">
+              <div class="group-label">Avaliação</div>
+              <div class="stars-compact">
+                <span class="sc-star" id="sc1" onclick="setStars(1)" onmouseover="hoverS(1)" onmouseout="hoverS(0)">★</span>
+                <span class="sc-star" id="sc2" onclick="setStars(2)" onmouseover="hoverS(2)" onmouseout="hoverS(0)">★</span>
+                <span class="sc-star" id="sc3" onclick="setStars(3)" onmouseover="hoverS(3)" onmouseout="hoverS(0)">★</span>
+                <span class="sc-star" id="sc4" onclick="setStars(4)" onmouseover="hoverS(4)" onmouseout="hoverS(0)">★</span>
+                <span class="sc-star" id="sc5" onclick="setStars(5)" onmouseover="hoverS(5)" onmouseout="hoverS(0)">★</span>
+                <span class="sc-label" id="scLabel">Sem classificação</span>
+              </div>
             </div>
-          </div>
 
-          <div class="fg"><label>Descrição / Sobre a Empresa</label>
-            <textarea id="desc" placeholder="Descreva o negócio, produtos, diferenciais..."></textarea></div>
-          <div class="fg"><label>Fotógrafo / Autor</label>
-            <input type="text" id="artist" placeholder="Nome ou empresa"></div>
-          <div class="fg"><label>Copyright <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">🔒 fixo</span></label>
-            <input type="text" id="copyright" readonly style="background:var(--pale2);color:var(--muted);cursor:default;user-select:none"></div>
-          <div class="fg"><label>Data (EXIF) <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">— preenchida automaticamente</span></label>
-            <input type="text" id="date" placeholder="2026:04:30 10:30:00"></div>
-          <div class="fg"><label>Site</label>
-            <input type="url" id="website" placeholder="https://www.empresa.com.br"></div>
-          <div class="fg"><label>Email</label>
-            <input type="email" id="email" placeholder="contato@empresa.com.br"></div>
+            <!-- GRUPO: TEXTO -->
+            <div class="group">
+              <div class="group-label">Texto da Empresa</div>
+              <div class="fg"><label>Descrição / Sobre a Empresa</label>
+                <textarea id="desc" placeholder="Descreva o negócio, produtos, diferenciais..."></textarea></div>
+              <div class="row2">
+                <div class="fg"><label>Fotógrafo / Autor</label>
+                  <input type="text" id="artist" placeholder="Nome ou empresa"></div>
+                <div class="fg"><label>Site</label>
+                  <input type="url" id="website" placeholder="https://www.empresa.com.br"></div>
+              </div>
+              <div class="fg" style="margin-bottom:0"><label>Email</label>
+                <input type="email" id="email" placeholder="contato@empresa.com.br"></div>
+            </div>
 
-          <div class="fg">
-            <label>Redes Sociais</label>
-            <div id="socialList"></div>
-            <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="addSocial()">+ Adicionar rede</button>
+            <!-- GRUPO: METADADOS FIXOS -->
+            <div class="group">
+              <div class="group-label">Metadados Fixos</div>
+              <div class="row2">
+                <div class="fg"><label>Copyright <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">🔒 fixo</span></label>
+                  <input type="text" id="copyright" readonly style="background:var(--pale2);color:var(--muted);cursor:default;user-select:none"></div>
+                <div class="fg"><label>Data (EXIF) <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">— automática</span></label>
+                  <input type="text" id="date" placeholder="2026:04:30 10:30:00"></div>
+              </div>
+            </div>
+
+            <!-- GRUPO: REDES SOCIAIS -->
+            <div class="group">
+              <div class="group-label">Redes Sociais</div>
+              <div id="socialList"></div>
+              <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="addSocial()">+ Adicionar rede social</button>
+            </div>
+
           </div>
         </div>
 
         <!-- KEYWORDS -->
         <div class="rp" id="rp-kw">
-          <div class="full-header"><h2>🔑 Keywords</h2><p>Palavras-chave que ajudam o Google a entender o conteúdo das fotos.</p></div>
-          <div class="stitle">🔑 Keywords / Palavras-chave</div>
-          <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">Digite e pressione <strong>Enter</strong> para adicionar cada palavra-chave.</p>
-          <label>Palavras-chave</label>
-          <div class="tags-wrap" id="kwWrap" onclick="document.getElementById('kwInput').focus()">
-            <input type="text" class="tags-input" id="kwInput" placeholder="Digite e pressione Enter..." onkeydown="tagKeydown(event,'kw')">
+          <div class="form-card">
+            <div class="group">
+              <div class="group-label">Palavras-chave</div>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">Digite e pressione <strong>Enter</strong> para adicionar cada palavra-chave.</p>
+              <div class="tags-wrap" id="kwWrap" onclick="document.getElementById('kwInput').focus()">
+                <input type="text" class="tags-input" id="kwInput" placeholder="Digite e pressione Enter..." onkeydown="tagKeydown(event,'kw')">
+              </div>
+              <div class="tags-hint">Ex: fotografia, produto, São Paulo, restaurante...</div>
+              <div class="import-btn" style="margin-top:12px">
+                <input type="file" accept=".txt,.xlsx,.xls,.xml" onchange="importKeywords(this)">
+                📥 Importar lista de palavras (.txt, .xlsx, .xml)
+              </div>
+              <div id="kwImportStatus" style="font-size:10px;color:var(--green);margin-top:4px"></div>
+            </div>
           </div>
-          <div class="tags-hint">Ex: fotografia, produto, São Paulo, restaurante...</div>
-
-          <div class="import-btn" style="margin-top:12px">
-            <input type="file" accept=".txt,.xlsx,.xls,.xml" onchange="importKeywords(this)">
-            📥 Importar lista de palavras (.txt, .xlsx, .xml)
-          </div>
-          <div id="kwImportStatus" style="font-size:10px;color:var(--green);margin-top:4px"></div>
         </div>
 
         <!-- CATEGORIAS -->
         <div class="rp" id="rp-cat">
-          <div class="full-header"><h2>🏷️ Categorias</h2><p>Categorias do Google Meu Negócio para classificar corretamente sua empresa.</p></div>
-          <div class="stitle">🏷️ Categorias GMN</div>
-          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
-            Categorias baseadas no Google Meu Negócio. Digite para filtrar e pressione <strong>Enter</strong> para confirmar.
-          </p>
-          <div class="fg">
-            <label>Categoria Principal</label>
-            <div class="ac-wrap">
-              <input type="text" id="mainCategory" placeholder="Ex: Salão de beleza, Restaurante..." autocomplete="off"
-                oninput="acCategory(this.value,'mainCatAc','mainCategory')"
-                onkeydown="if(event.key==='Enter'){confirmMainCat();event.preventDefault()}">
-              <div class="ac-list" id="mainCatAc" style="display:none"></div>
+          <div class="form-card">
+            <div class="group">
+              <div class="group-label">Categoria Principal</div>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">Categorias baseadas no Google Meu Negócio. Digite para filtrar e pressione <strong>Enter</strong> para confirmar.</p>
+              <div class="fg" style="margin-bottom:0">
+                <div class="ac-wrap">
+                  <input type="text" id="mainCategory" placeholder="Ex: Salão de beleza, Restaurante..." autocomplete="off"
+                    oninput="acCategory(this.value,'mainCatAc','mainCategory')"
+                    onkeydown="if(event.key==='Enter'){confirmMainCat();event.preventDefault()}">
+                  <div class="ac-list" id="mainCatAc" style="display:none"></div>
+                </div>
+                <div id="mainCatConfirmed" style="display:none;margin-top:6px;background:var(--pale);border-radius:var(--r);padding:6px 10px;font-size:12px;color:var(--navy);font-weight:600;align-items:center;gap:8px">
+                  <span id="mainCatLabel"></span>
+                  <span style="cursor:pointer;color:var(--muted);margin-left:auto" onclick="clearMainCat()">✕</span>
+                </div>
+              </div>
             </div>
-            <div id="mainCatConfirmed" style="display:none;margin-top:6px;background:var(--pale);border-radius:var(--r);padding:6px 10px;font-size:12px;color:var(--navy);font-weight:600;align-items:center;gap:8px">
-              <span id="mainCatLabel"></span>
-              <span style="cursor:pointer;color:var(--muted);margin-left:auto" onclick="clearMainCat()">✕</span>
+            <div class="group">
+              <div class="group-label">Subcategorias Adicionais</div>
+              <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Digite e pressione <strong>Enter</strong> para adicionar cada subcategoria</p>
+              <div class="fg" style="margin-bottom:0">
+                <div class="ac-wrap">
+                  <input type="text" id="catInput" placeholder="Ex: Cabeleireiro, Manicure..."
+                    autocomplete="off" style="border:1.5px solid var(--border);border-radius:var(--r);padding:7px 10px;width:100%;font-size:12px"
+                    oninput="acCategory(this.value,'subCatAc','catInput')"
+                    onkeydown="if(event.key==='Enter'){addSubcat();event.preventDefault();document.getElementById('subCatAc').style.display='none'}">
+                  <div class="ac-list" id="subCatAc" style="display:none"></div>
+                </div>
+                <div id="subcatList" style="margin-top:8px;display:flex;flex-direction:column;gap:5px"></div>
+              </div>
             </div>
-          </div>
-          <div class="fg">
-            <label>Subcategorias (Categorias Adicionais)</label>
-            <p style="font-size:10px;color:var(--muted);margin-bottom:6px">Digite e pressione <strong>Enter</strong> para adicionar cada subcategoria</p>
-            <div class="ac-wrap">
-              <input type="text" id="catInput" placeholder="Ex: Cabeleireiro, Manicure..."
-                autocomplete="off" style="border:1.5px solid var(--border);border-radius:var(--r);padding:7px 10px;width:100%;font-size:12px"
-                oninput="acCategory(this.value,'subCatAc','catInput')"
-                onkeydown="if(event.key==='Enter'){addSubcat();event.preventDefault();document.getElementById('subCatAc').style.display='none'}">
-              <div class="ac-list" id="subCatAc" style="display:none"></div>
-            </div>
-            <div id="subcatList" style="margin-top:8px;display:flex;flex-direction:column;gap:5px"></div>
           </div>
         </div>
 
         <!-- EXPORTAR -->
         <div class="rp" id="rp-export">
-          <div class="full-header"><h2>📤 Exportar</h2><p>Processe e baixe as fotos com todos os metadados gravados.</p></div>
-          <div class="stitle">📤 Processar & Exportar</div>
+          <div class="form-card">
+          <div class="group">
 
           <!-- LIMPAR FOTOS -->
           <div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px">
@@ -554,57 +599,69 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
             </div>
             <div id="downloadResults" style="margin-top:8px"></div>
           </div>
+        </div><!-- /group -->
+          </div><!-- /form-card -->
         </div>
 
         <!-- SALVAR MODELO -->
         <div class="rp" id="rp-save_model">
-          <div class="full-header"><h2>💾 Salvar Modelo</h2><p>Salve todas as configurações atuais para reutilizar em projetos futuros.</p></div>
-          <div class="stitle">💾 Salvar Modelo</div>
-          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
-            Salva todas as configurações atuais para reutilizar. Para sobrescrever um modelo existente, use o mesmo nome.
-          </p>
-          <div class="fg">
-            <label>Nome do Modelo</label>
-            <div class="ac-wrap">
-              <input type="text" id="modelName" placeholder="Ex: Restaurante ABC, Clínica Centro..."
-                oninput="acModelName(this.value)" autocomplete="off">
-              <div class="ac-list" id="modelNameAc" style="display:none"></div>
-            </div>
-          </div>
-          <div id="overwriteWarn" style="display:none;background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:8px 12px;font-size:11px;color:#7c5200;margin-bottom:8px">
-            ⚠️ Já existe um modelo com esse nome. Clique em Salvar para <strong>sobrescrever</strong>.
-          </div>
-          <button class="btn btn-blue btn-full" onclick="saveModel()">💾 Salvar Configurações Atuais</button>
+          <div class="form-card">
+            <div class="group">
+              <div class="group-label">Salvar Configurações</div>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+                Salva todas as configurações atuais para reutilizar. Para sobrescrever um modelo existente, use o mesmo nome.
+              </p>
+              <div class="fg">
+                <label>Nome do Modelo</label>
+                <div class="ac-wrap">
+                  <input type="text" id="modelName" placeholder="Ex: Restaurante ABC, Clínica Centro..."
+                    oninput="acModelName(this.value)" autocomplete="off">
+                  <div class="ac-list" id="modelNameAc" style="display:none"></div>
+                </div>
+              </div>
+              <div id="overwriteWarn" style="display:none;background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:8px 12px;font-size:11px;color:#7c5200;margin-bottom:8px">
+                ⚠️ Já existe um modelo com esse nome. Clique em Salvar para <strong>sobrescrever</strong>.
+              </div>
+              <button class="btn btn-blue btn-full" onclick="saveModel()">💾 Salvar Configurações Atuais</button>
+            </div><!-- /group -->
+          </div><!-- /form-card -->
         </div>
 
         <!-- USAR MODELO -->
         <div class="rp" id="rp-use_model">
-          <div class="full-header"><h2>📂 Modelos</h2><p>Selecione um modelo salvo para preencher todos os campos automaticamente.</p></div>
-          <div class="stitle">📂 Usar Modelo Salvo</div>
-          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
-            Selecione as fotos primeiro, depois clique em um modelo para aplicar todos os metadados automaticamente.
-          </p>
-          <button class="btn btn-ghost btn-full btn-sm" onclick="loadModels()" style="margin-bottom:10px">🔄 Atualizar lista</button>
-          <div id="modelsList"><div class="empty"><div class="ei">💾</div><p>Nenhum modelo salvo ainda.</p></div></div>
+          <div class="form-card">
+            <div class="group">
+              <div class="group-label">Modelos Salvos</div>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+                Selecione as fotos primeiro, depois clique em um modelo para aplicar todos os metadados automaticamente.
+              </p>
+              <button class="btn btn-ghost btn-full btn-sm" onclick="loadModels()" style="margin-bottom:10px">🔄 Atualizar lista</button>
+              <div id="modelsList"><div class="empty"><div class="ei">💾</div><p>Nenhum modelo salvo ainda.</p></div></div>
+            </div><!-- /group -->
+          </div><!-- /form-card -->
         </div>
 
         <!-- NOME DO ARQUIVO -->
         <div class="rp" id="rp-nome">
-          <div class="full-header"><h2>✏️ Renomear</h2><p>Defina um padrão de nome para as fotos antes de exportar.</p></div>
-          <div class="stitle">✏️ Renomear Arquivo</div>
+          <div class="form-card">
+            <div class="group">
+              <div class="group-label">Padrão de Renomeação</div>
           <div class="fg">
-            <label>Padrão de Renomeação</label>
-            <input type="text" id="renamePattern" placeholder="empresa_foto_{n}"
-              oninput="previewRename()"
-              onkeydown="if(event.key==='Enter'){confirmRename();event.preventDefault()}">
-            <div style="font-size:10px;color:var(--dim);margin-top:4px">Pressione <strong>Enter</strong> para confirmar o padrão</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6">
-              <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{n}</code> número &nbsp;
-              <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{name}</code> original &nbsp;
-              <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{date}</code> data
-            </div>
-          </div>
-          <div id="rnPreview"></div>
+              <label>Padrão de Renomeação</label>
+              <div class="fg">
+                <input type="text" id="renamePattern" placeholder="empresa_foto_{n}"
+                  oninput="previewRename()"
+                  onkeydown="if(event.key==='Enter'){confirmRename();event.preventDefault()}">
+                <div style="font-size:10px;color:var(--dim);margin-top:4px">Pressione <strong>Enter</strong> para confirmar o padrão</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6">
+                  <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{n}</code> número &nbsp;
+                  <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{name}</code> original &nbsp;
+                  <code style="background:var(--pale);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)">{date}</code> data
+                </div>
+              </div>
+              <div id="rnPreview"></div>
+            </div><!-- /group -->
+          </div><!-- /form-card -->
         </div>
 
       </div>
@@ -672,18 +729,31 @@ const S={files:[],map:null,mapM:null,outDir:'',lastOutDir:'',rating:0,kwTags:[],
 const toast=(msg,type='ok')=>{const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3500)};
 
 // NAV
+const SB_MAP={
+  'desc': {icon:'📝',title:'Descrição',hint:'preencha e clique em Exportar para aplicar nas fotos'},
+  'kw':   {icon:'🔑',title:'Keywords',hint:'palavras-chave para os metadados das fotos'},
+  'cat':  {icon:'🏷️',title:'Categorias',hint:'categorias do Google Meu Negócio'},
+  'export':{icon:'📤',title:'Exportar',hint:'processe e baixe as fotos com metadados'},
+  'save_model':{icon:'💾',title:'Salvar Modelo',hint:'salve as configurações atuais para reutilizar'},
+  'use_model':{icon:'📂',title:'Modelos',hint:'aplique um modelo salvo em suas fotos'},
+  'nome': {icon:'✏️',title:'Renomear',hint:'defina o padrão de nome dos arquivos'},
+};
 function navTo(id,el){
   document.querySelectorAll('.ni').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.rp').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('rp-'+id).classList.add('active');
-  // Local = layout 3 painéis; demais = tela cheia
   const panels = document.getElementById('panels');
   if(id==='loc'){
     panels.classList.remove('full-mode');
     setTimeout(()=>{if(!S.map) initMinimap(); S.map.invalidateSize();},150);
   } else {
     panels.classList.add('full-mode');
+    if(SB_MAP[id]){
+      document.getElementById('sb-icon').textContent=SB_MAP[id].icon;
+      document.getElementById('sb-title').textContent=SB_MAP[id].title;
+      document.getElementById('sb-hint').textContent='— '+SB_MAP[id].hint;
+    }
   }
   if(id==='use_model') loadModels();
   if(id==='export') updateExportCount();
