@@ -546,10 +546,38 @@ def busca_cep(cep):
 def geocode():
     q=request.args.get('q','')
     try:
-        r=req.get(f'https://nominatim.openstreetmap.org/search?q={q}&format=json&limit=1',
+        r=req.get('https://nominatim.openstreetmap.org/search',
+            params={'q':q,'format':'json','limit':1},
             headers={'User-Agent':'CrazyPro-RFA/1.0'},timeout=8)
         return jsonify(r.json())
     except: return jsonify([]),400
+
+@app.route('/reverse')
+def reverse_geocode():
+    try:
+        lat=float(request.args.get('lat','')); lon=float(request.args.get('lon',''))
+        if not(-90<=lat<=90 and -180<=lon<=180): raise ValueError
+    except (TypeError,ValueError):
+        return jsonify({'erro':'coordenadas inválidas'}),400
+    try:
+        r=req.get('https://nominatim.openstreetmap.org/reverse',
+            params={'lat':lat,'lon':lon,'format':'jsonv2','addressdetails':1,'accept-language':'pt-BR','zoom':18},
+            headers={'User-Agent':'CrazyPro-RFA/1.0'},timeout=8)
+        d=r.json()
+    except Exception:
+        return jsonify({'erro':'serviço de endereços indisponível'}),502
+    a=d.get('address') or {}
+    if not a: return jsonify({'erro':'nenhum endereço encontrado nessas coordenadas'}),404
+    iso=a.get('ISO3166-2-lvl4','')
+    return jsonify({
+        'logradouro':a.get('road') or a.get('pedestrian') or a.get('path') or '',
+        'numero':a.get('house_number',''),
+        'bairro':a.get('suburb') or a.get('neighbourhood') or a.get('quarter') or a.get('city_district') or '',
+        'cidade':a.get('city') or a.get('town') or a.get('village') or a.get('municipality') or '',
+        'uf':iso.split('-')[-1] if iso.startswith('BR-') else '',
+        'pais':a.get('country',''),
+        'cep':a.get('postcode',''),
+    })
 
 @app.route('/import_keywords', methods=['POST'])
 def import_keywords():

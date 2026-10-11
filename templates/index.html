@@ -379,11 +379,15 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 
           <div class="stitle" style="margin-top:12px">📌 Coordenadas</div>
           <div class="row3">
-            <div class="fg"><label>Latitude</label><input type="number" id="lat" step="any" placeholder="-23.55" oninput="updateMinimap()"></div>
-            <div class="fg"><label>Longitude</label><input type="number" id="lon" step="any" placeholder="-46.63" oninput="updateMinimap()"></div>
+            <div class="fg"><label>Latitude</label><input type="number" id="lat" step="any" placeholder="-23.55" oninput="updateMinimap()" onkeydown="if(event.key==='Enter'){reverseFromCoords();event.preventDefault()}"></div>
+            <div class="fg"><label>Longitude</label><input type="number" id="lon" step="any" placeholder="-46.63" oninput="updateMinimap()" onkeydown="if(event.key==='Enter'){reverseFromCoords();event.preventDefault()}"></div>
             <div class="fg"><label>Alt. m</label><input type="number" id="alt" step="any" placeholder="760"></div>
           </div>
-          <button class="btn btn-light btn-full" onclick="geocodeFromAddress()">🌐 Obter coordenadas da Web</button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button class="btn btn-light btn-full" onclick="reverseFromCoords()">📍 Obter endereço a partir das coordenadas</button>
+            <button class="btn btn-ghost btn-full" onclick="geocodeFromAddress()">🌐 Obter coordenadas a partir do endereço</button>
+          </div>
+          <div style="font-size:10px;color:var(--dim);margin-top:6px;line-height:1.5">Digite latitude e longitude (ou clique no mapa) e use o primeiro botão; ou preencha o CEP/endereço e use o segundo.</div>
         </div>
 
         <!-- DESCRIÇÕES -->
@@ -775,7 +779,7 @@ function initMinimap(){
     document.getElementById('lat').value=lat.toFixed(6);
     document.getElementById('lon').value=lng.toFixed(6);
     placeMapMarker(lat,lng);
-    toast(`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    reverseFromCoords();
   });
 }
 function placeMapMarker(lat,lon){
@@ -1066,6 +1070,35 @@ async function geocodeFromAddress(){
       toast(`📍 Coordenadas obtidas: ${lat}, ${lon}`);
     } else {toast('Endereço não encontrado na web','err')}
   }catch{toast('Erro ao buscar coordenadas','err')}
+}
+
+// REVERSE GEOCODE (coordenadas -> endereço)
+async function reverseFromCoords(){
+  const lat=parseFloat(document.getElementById('lat').value);
+  const lon=parseFloat(document.getElementById('lon').value);
+  if(isNaN(lat)||isNaN(lon)){toast('Digite latitude e longitude primeiro','err');return}
+  if(lat<-90||lat>90||lon<-180||lon>180){toast('Coordenadas fora do intervalo válido','err');return}
+  if(!S.map) initMinimap();
+  placeMapMarker(lat,lon);
+  const st=document.getElementById('cepStatus');
+  st.textContent='🔍 Buscando endereço...';
+  try{
+    const res=await fetch(`/reverse?lat=${lat}&lon=${lon}`),d=await res.json();
+    if(!res.ok||d.erro){
+      st.textContent='⚠ '+(d.erro||'Endereço não encontrado');
+      toast(d.erro||'Endereço não encontrado nessas coordenadas','err');return;
+    }
+    const set=(id,v)=>{const el=document.getElementById(id);if(el) el.value=v||''};
+    set('street',d.logradouro); set('number',d.numero); set('complement','');
+    set('neighborhood',d.bairro); set('city',d.cidade); set('state',d.uf);
+    if(d.pais) set('country',d.pais);
+    set('cep',d.cep);
+    st.textContent=`✓ ${d.cidade||'Local'}${d.uf?' / '+d.uf:''}`;
+    toast('📍 Endereço obtido a partir das coordenadas');
+  }catch{
+    st.textContent='⚠ Erro';
+    toast('Erro ao buscar endereço','err');
+  }
 }
 
 // CITY AUTOCOMPLETE
