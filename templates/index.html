@@ -1322,7 +1322,14 @@ async function saveModel(){
   meta.number=document.getElementById('number')?.value||'';
   meta.complement=document.getElementById('complement')?.value||'';
   meta.neighborhood=document.getElementById('neighborhood')?.value||'';
-  await fetch('/models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,meta})});
+  try{
+    const res=await fetch('/models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,meta})});
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      toast('Erro ao salvar modelo: '+(err.error||('HTTP '+res.status)),'err');
+      return;
+    }
+  }catch(e){toast('Erro ao salvar modelo: sem conexão com o servidor','err');return}
   document.getElementById('modelName').value='';
   document.getElementById('overwriteWarn').style.display='none';
   document.getElementById('modelNameAc').style.display='none';
@@ -1331,7 +1338,13 @@ async function saveModel(){
 }
 
 async function loadModels(){
-  const res=await fetch('/models');const m=await res.json();const keys=Object.keys(m);
+  let m;
+  try{
+    const res=await fetch('/models');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    m=await res.json();
+  }catch(e){toast('Erro ao carregar modelos','err');return}
+  const keys=Object.keys(m);
   _savedModelKeys=keys; // update for autocomplete
   const el=document.getElementById('modelsList');
   if(!keys.length){el.innerHTML='<div class="empty"><div class="ei">💾</div><p>Nenhum modelo salvo ainda.</p></div>';return}

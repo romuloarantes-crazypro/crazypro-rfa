@@ -10,7 +10,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'crazypro-rfa-2026')
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 UPLOAD_BASE = '/tmp/cp_uploads'
-MODELS_FILE = '/tmp/cp_models.json'
+MODELS_FILE = os.environ.get('CRAZYPRO_MODELS_FILE') or os.path.join(os.path.expanduser('~'), '.crazypro_rfa', 'models.json')
+LEGACY_MODELS_FILE = '/tmp/cp_models.json'
 SUPPORTED = {'.jpg','.jpeg','.tiff','.tif','.dng','.nef','.raf','.crw','.raw','.png'}
 
 try:
@@ -34,7 +35,16 @@ def load_json(p):
     except: return {}
 
 def save_json(p, d):
-    json.dump(d, open(p,'w'), ensure_ascii=False, indent=2)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, p)
+
+def load_models():
+    if not os.path.exists(MODELS_FILE) and os.path.exists(LEGACY_MODELS_FILE):
+        return load_json(LEGACY_MODELS_FILE)
+    return load_json(MODELS_FILE)
 
 def deg_to_dms(deg):
     deg=abs(float(deg)); d=int(deg); m=int((deg-d)*60); s=round(((deg-d)*60-m)*60,4)
@@ -563,18 +573,26 @@ def import_keywords():
     return jsonify({'keywords':words})
 
 @app.route('/models',methods=['GET'])
-def get_models(): return jsonify(load_json(MODELS_FILE))
+def get_models(): return jsonify(load_models())
 
 @app.route('/models',methods=['POST'])
 def save_model():
-    d=request.json; name=d.get('name','').strip()
+    d=request.get_json(silent=True) or {}; name=(d.get('name') or '').strip()
     if not name: return jsonify({'error':'nome obrigatório'}),400
-    m=load_json(MODELS_FILE); m[name]=d.get('meta',{}); save_json(MODELS_FILE,m)
+    try:
+        m=load_models(); m[name]=d.get('meta',{}); save_json(MODELS_FILE,m)
+    except Exception as e:
+        print(f"save_model error: {e}")
+        return jsonify({'error':f'não foi possível gravar em {MODELS_FILE}: {e}'}),500
     return jsonify({'ok':True})
 
 @app.route('/models/<name>',methods=['DELETE'])
 def del_model(name):
-    m=load_json(MODELS_FILE); m.pop(name,None); save_json(MODELS_FILE,m)
+    try:
+        m=load_models(); m.pop(name,None); save_json(MODELS_FILE,m)
+    except Exception as e:
+        print(f"del_model error: {e}")
+        return jsonify({'error':str(e)}),500
     return jsonify({'ok':True})
 
 @app.route('/health')
