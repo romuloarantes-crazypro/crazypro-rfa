@@ -567,9 +567,20 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
                   <span>Foto de capa 16:9</span>
                 </div>
               </label>
+              <label class="gmn-preset" data-original="1">
+                <input type="radio" name="gmnPreset" value="original" style="display:none">
+                <span class="gmn-preset-icon">🖼️</span>
+                <div>
+                  <strong>Original (sem redimensionar)</strong>
+                  <span>Mantém o tamanho da foto, só grava os metadados</span>
+                </div>
+              </label>
             </div>
-            <div style="margin-top:8px;font-size:10px;color:var(--dim)">
+            <div id="gmnCropNote" style="margin-top:8px;font-size:10px;color:var(--dim)">
               ✂️ Crop centralizado — sem distorção, sem bordas. Original não é alterado.
+            </div>
+            <div id="gmnOriginalWarn" style="display:none;margin-top:8px;background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:8px 10px;font-size:11px;color:#7c5200;line-height:1.5">
+              ⚠️ O Google Meu Negócio aceita fotos de até <strong>5 MB</strong>. Fotos grandes no tamanho original podem ser recusadas. Se isso acontecer, reduza a qualidade JPEG acima ou escolha um dos formatos.
             </div>
             <!-- campo oculto sempre ativo -->
             <input type="hidden" id="gmnResize" value="1">
@@ -989,15 +1000,19 @@ function getMeta(){
     alt:document.getElementById('alt').value||null,
     quality:document.getElementById('quality').value,
     rating:curRating,
-    gmn_resize:'1',
+    gmn_resize:isGmnOriginal()?'0':'1',
     gmn_w:getGmnDim('w'),
     gmn_h:getGmnDim('h')
   };
 }
 
+function isGmnOriginal(){
+  return !!document.querySelector('.gmn-preset.active[data-original]');
+}
+
 function getGmnDim(axis){
   const sel=document.querySelector('.gmn-preset.active');
-  if(!sel) return axis==='w'?1080:1080;
+  if(!sel||!sel.dataset.w) return 1080;
   return axis==='w'? sel.dataset.w : sel.dataset.h;
 }
 
@@ -1009,6 +1024,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.querySelectorAll('.gmn-preset').forEach(l=>l.classList.remove('active'));
       lbl.classList.add('active');
       lbl.querySelector('input[type=radio]').checked=true;
+      const orig=isGmnOriginal();
+      document.getElementById('gmnOriginalWarn').style.display=orig?'block':'none';
+      document.getElementById('gmnCropNote').style.display=orig?'none':'block';
     });
   });
 
