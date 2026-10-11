@@ -543,6 +543,14 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
             </div>
             <div style="font-size:10px;color:var(--muted);margin-bottom:7px">Selecione o tamanho desejado:</div>
             <div style="display:flex;flex-direction:column;gap:5px" id="gmnPresetBtns">
+              <label class="gmn-preset" data-original="1">
+                <input type="radio" name="gmnPreset" value="original" style="display:none">
+                <span class="gmn-preset-icon">🖼️</span>
+                <div>
+                  <strong>Original (sem redimensionar)</strong>
+                  <span>Mantém o tamanho da foto, só grava os metadados</span>
+                </div>
+              </label>
               <label class="gmn-preset active" data-w="1080" data-h="1080">
                 <input type="radio" name="gmnPreset" value="1080x1080" checked style="display:none">
                 <span class="gmn-preset-icon">⬛</span>
@@ -565,14 +573,6 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
                 <div>
                   <strong>1080 × 608 px</strong>
                   <span>Foto de capa 16:9</span>
-                </div>
-              </label>
-              <label class="gmn-preset" data-original="1">
-                <input type="radio" name="gmnPreset" value="original" style="display:none">
-                <span class="gmn-preset-icon">🖼️</span>
-                <div>
-                  <strong>Original (sem redimensionar)</strong>
-                  <span>Mantém o tamanho da foto, só grava os metadados</span>
                 </div>
               </label>
             </div>
