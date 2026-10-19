@@ -256,6 +256,17 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 .empty .ei{font-size:30px;margin-bottom:8px;opacity:.35}
 .empty p{font-size:11px;line-height:1.6}
 
+/* PRIVACIDADE */
+#privacy-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,28,46,.55);align-items:center;justify-content:center;padding:16px}
+#privacy-modal.show{display:flex}
+#privacy-box{background:var(--surface);border-radius:var(--r2);box-shadow:var(--shadow-md);max-width:640px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+#privacy-box header{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;color:var(--navy);font-family:'Syne',sans-serif}
+#privacy-box header button{margin-left:auto}
+#privacy-body{padding:16px 18px;overflow-y:auto;font-size:12px;line-height:1.65;color:var(--text)}
+#privacy-body h4{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--navy);margin:14px 0 4px}
+#privacy-body h4:first-child{margin-top:0}
+#privacy-body ul{padding-left:18px}
+
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--panel)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
@@ -424,12 +435,19 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 
             <!-- GRUPO: METADADOS FIXOS -->
             <div class="group">
-              <div class="group-label">Metadados Fixos</div>
+              <div class="group-label">Direitos e Data</div>
               <div class="row2">
-                <div class="fg"><label>Copyright <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">🔒 fixo</span></label>
-                  <input type="text" id="copyright" readonly style="background:var(--pale2);color:var(--muted);cursor:default;user-select:none"></div>
-                <div class="fg"><label>Data (EXIF) <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">— automática</span></label>
+                <div class="fg"><label>Copyright <a href="#" onclick="restoreCopyright();return false" style="font-size:9px;font-weight:400;letter-spacing:0;color:var(--blue)">restaurar padrão RFA</a></label>
+                  <input type="text" id="copyright" placeholder="© Ano Autor — direitos"></div>
+                <div class="fg"><label>Data de captura (EXIF) <span style="font-size:9px;font-weight:400;color:var(--dim);letter-spacing:0">— opcional</span></label>
                   <input type="text" id="date" placeholder="2026:04:30 10:30:00"></div>
+              </div>
+              <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0 0 6px;cursor:pointer">
+                <input type="checkbox" id="dateForce" style="width:auto"> Substituir a data original das fotos por esta data
+              </label>
+              <div style="font-size:10px;color:var(--dim);line-height:1.5">
+                A data original de cada foto é preservada. O campo de data só é usado em fotos que não têm data, ou se a opção acima estiver marcada.
+                O copyright padrão é da RFA: se a foto for de cliente ou de outro autor, ajuste para refletir quem detém os direitos.
               </div>
             </div>
 
@@ -467,7 +485,8 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
           <div class="form-card">
             <div class="group">
               <div class="group-label">Categoria Principal</div>
-              <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">Categorias baseadas no Google Meu Negócio. Digite para filtrar e pressione <strong>Enter</strong> para confirmar.</p>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.6">Digite para filtrar e pressione <strong>Enter</strong> para confirmar. Use a categoria que melhor descreve o negócio como um todo.</p>
+              <div id="catSourceNote" style="font-size:10px;color:var(--dim);margin-bottom:10px;line-height:1.5"></div>
               <div class="fg" style="margin-bottom:0">
                 <div class="ac-wrap">
                   <input type="text" id="mainCategory" placeholder="Ex: Salão de beleza, Restaurante..." autocomplete="off"
@@ -483,7 +502,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
             </div>
             <div class="group">
               <div class="group-label">Subcategorias Adicionais</div>
-              <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Digite e pressione <strong>Enter</strong> para adicionar cada subcategoria</p>
+              <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Digite e pressione <strong>Enter</strong> para adicionar cada subcategoria. <span id="subcatCount" style="font-weight:600">0/9</span></p>
               <div class="fg" style="margin-bottom:0">
                 <div class="ac-wrap">
                   <input type="text" id="catInput" placeholder="Ex: Cabeleireiro, Manicure..."
@@ -589,7 +608,8 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
           <!-- PASSO 1: PROCESSAR -->
           <div style="background:var(--pale2);border:1.5px solid var(--light);border-radius:var(--r2);padding:12px 14px;margin-bottom:12px">
             <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--navy);margin-bottom:6px">PASSO 1 — APLICAR METADADOS</div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Grava todos os dados (GPS, descrição, keywords, categorias, rating) nas fotos selecionadas.</p>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Grava todos os dados (GPS, descrição, keywords, categorias, rating) nas fotos selecionadas. A data original de cada foto é preservada.</p>
+            <p style="font-size:10px;color:var(--dim);margin:-4px 0 10px;line-height:1.5">Os metadados ajudam a organizar e dar contexto às fotos. O Google pode remover ou ignorar parte deles, e não há garantia de ranking. Grave somente dados verdadeiros.</p>
             <button class="btn-process" id="btnProcess" onclick="processarFotos()" style="font-size:13px;padding:12px">
               ⚡ PROCESSAR SELECIONADAS
             </button>
@@ -696,7 +716,37 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 <div style="position:fixed;bottom:0;left:120px;right:0;background:var(--navy);color:rgba(255,255,255,.55);
   font-size:10px;padding:5px 16px;display:flex;align-items:center;gap:8px;z-index:50;font-family:var(--mono)">
   <img src="{{ icon }}" style="width:14px;height:14px;border-radius:3px;opacity:.8" alt="">
-  © 2026 RFA Marketing Digital &nbsp;·&nbsp; CNPJ: 64.810.923/0001-91 &nbsp;·&nbsp; Rômulo Falcão Arantes &nbsp;·&nbsp; Todos os direitos reservados
+  © 2026 RFA Marketing Digital &nbsp;·&nbsp; CNPJ: 64.810.923/0001-91 &nbsp;·&nbsp; Rômulo Falcão Arantes &nbsp;·&nbsp; Todos os direitos reservados &nbsp;·&nbsp; <a href="#" onclick="openPrivacy();return false" style="color:#9fd0f3">Privacidade e termos</a>
+</div>
+
+<div id="privacy-modal" onclick="if(event.target===this)closePrivacy()">
+  <div id="privacy-box" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+    <header><span id="privacy-title">Privacidade e termos de uso</span><button class="btn btn-ghost btn-sm" onclick="closePrivacy()">Fechar</button></header>
+    <div id="privacy-body">
+      <h4>Quem opera</h4>
+      <p>CrazyPro RFA, da RFA Marketing Digital (CNPJ 64.810.923/0001-91).</p>
+      <h4>O que o app guarda</h4>
+      <ul>
+        <li>As fotos importadas e as geradas ficam numa pasta temporária do servidor, ligada à sua sessão. São apagadas ao usar "Limpar" e, automaticamente, depois de 24 horas sem uso.</li>
+        <li>Os modelos salvos ficam em arquivo na pasta do usuário que executa o app, até serem removidos por você.</li>
+        <li>O app usa um cookie de sessão apenas para identificar a sua pasta temporária. Não há rastreamento nem publicidade.</li>
+      </ul>
+      <h4>Serviços externos usados</h4>
+      <ul>
+        <li><strong>OpenStreetMap / Nominatim</strong>: recebem endereços e coordenadas para localizar o ponto no mapa e para obter endereço a partir de coordenadas. O mapa exibido também vem do OpenStreetMap.</li>
+        <li><strong>ViaCEP, BrasilAPI e OpenCEP</strong>: recebem o CEP digitado.</li>
+        <li><strong>Google Fonts e unpkg</strong>: entregam fontes e a biblioteca do mapa ao seu navegador, que expõe o seu IP a esses serviços.</li>
+      </ul>
+      <h4>Responsabilidades de quem usa</h4>
+      <ul>
+        <li>Use apenas fotos suas ou licenciadas para você. O Google exige que você tenha os direitos sobre o conteúdo que envia.</li>
+        <li>Grave dados verdadeiros: data, local e autoria devem corresponder à realidade. O Google pode remover fotos enganosas e restringir perfis.</li>
+        <li>Ajuste o copyright quando a foto for de outro autor ou cliente.</li>
+        <li>Os metadados não garantem posição nas buscas, e o Google pode removê-los ou ignorá-los. O Google Meu Negócio aceita fotos JPG ou PNG de 10 KB a 5 MB.</li>
+      </ul>
+      <p style="margin-top:14px;font-size:10px;color:var(--dim)">Texto informativo, não substitui orientação jurídica sobre a LGPD.</p>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -706,8 +756,9 @@ const CITIES=['São Paulo','Rio de Janeiro','Belo Horizonte','Salvador','Fortale
 const STAR_LABELS=['Sem classificação','Baixa prioridade','Abaixo da média','Boa','Muito boa','Excelente'];
 const SOCIAL_OPTS=['Instagram','Facebook','TikTok','YouTube','LinkedIn','Twitter/X','WhatsApp','Pinterest','Outro'];
 
-// GMN OFFICIAL CATEGORIES
-const GMN_CATS=['Academia de dança','Academia de ginástica','Advocacia','Advogado','Agência de SEO','Agência de empregos','Agência de marketing','Agência de publicidade','Agência de viagens','Agência imobiliária','Aluguel de veículos','Arquitetura e urbanismo','Arquiteto','Assessoria financeira','Assistência técnica','Auto elétrica','Auto peças','Açougue','Banco','Barbearia','Barbearia e salão','Bar','Bijuteria','Boate','Borracharia','Boutique','Buffet','Cabeleireiro','Café','Câmbio','Camping','Casa de câmbio','Casa de festas','Casa noturna','Chaveiro','Cinema','Clínica de estética','Clínica de fisioterapia','Clínica de nutrição','Clínica de psicologia','Clínica de reabilitação','Clínica médica','Clínica odontológica','Clínica veterinária','Clube','Colégio','Comércio de alimentos','Compra e venda de veículos','Concessionária','Confeitaria','Construtora','Construtora civil','Consultório de psicologia','Consultório fisioterapêutico','Consultório médico','Consultório odontológico','Contabilidade','Cooperativa','Coworking','Creche','Decoração','Delivery de comida','Dentista','Dentista pediatra','Depósito de materiais','Designer de interiores','Designer gráfico','Despachante','Distribuidora','Educação infantil','Elétrica predial','Eletricista','Empresa de mudanças','Empresa de tecnologia','Enfermagem','Engenharia civil','Escola','Escola de idiomas','Escola de música','Esteticista','Estética automotiva','Estética corporal','Estética facial','Estúdio de fotografia','Estúdio de tatuagem','Eventos','Exames laboratoriais','Farmácia','Financeira','Fisioterapeuta','Floricultura','Fotografia','Fotógrafo','Franquia','Funilaria','Funileiro','Gráfica','Hamburgueria','Hamburgueria artesanal','Hidráulica','Hotel','Igreja','Imobiliária','Importadora','Indústria','Instalação de ar condicionado','Instalação elétrica','Instituto de beleza','Jardinagem','Joalheria','Laboratório','Lanchonete','Lavagem de veículos','Lavanderia','Loja de artigos esportivos','Loja de brinquedos','Loja de calçados','Loja de cosméticos','Loja de eletrônicos','Loja de informática','Loja de material de construção','Loja de móveis','Loja de roupas','Loja de suplementos','Loja virtual','Manicure','Marketing digital','Marmoraria','Massagem','Material de construção','Mecânico','Médico','Médico cardiologista','Médico clínico geral','Médico dermatologista','Médico ginecologista','Médico neurologista','Médico ortopedista','Médico pediatra','Médico psiquiatra','Médico urologista','Mercearia','Minimercado','Montagem de móveis','Motoboy','Nutricionista','Oficina de bicicletas','Oficina de eletrônicos','Oficina mecânica','Padaria','Paisagismo','Panificadora','Papelaria','Pedreiro','Pensão','Personal trainer','Petshop','Pintor','Pintura predial','Pizzaria','Pizzaria delivery','Plano de saúde','Pneus','Pousada','Pousada rural','Produtos naturais','Professor particular','Psicólogo','Psiquiatra','Publicidade','Reciclagem','Reformas','Reparação de computadores','Restaurante','Restaurante italiano','Restaurante japonês','Restaurante vegetariano','Salão de beleza','Salão de jogos','Serviço automotivo','Serviço de contabilidade','Serviço de entrega','Serviço de jardinagem','Serviço de limpeza','Serviço de pintura','Serviço de reformas','Serviço de segurança','Serviço elétrico','Serviço hidráulico','Sistema de segurança','Sorveteria','Sorveteria artesanal','Spa','Supermercado','Suplementos alimentares','Tatuagem','Técnico de refrigeração','Técnico em informática','Tecnologia da informação','Topografia','Transporte','Transporte escolar','Turismo','Uniformes','Veterinário','Vidraçaria','Zootecnista'].sort();
+// LISTA DE REFERÊNCIA (não oficial). A lista oficial, se existir, vem de static/categorias_gbp.json
+let CATS_OFFICIAL=false;
+let GMN_CATS=['Academia de dança','Academia de ginástica','Advogado','Agência de SEO','Agência de empregos','Agência de marketing','Agência de publicidade','Agência de viagens','Aluguel de veículos','Arquitetura e urbanismo','Arquiteto','Assessoria financeira','Assistência técnica','Auto elétrica','Auto peças','Açougue','Banco','Barbearia','Barbearia e salão','Bar','Bijuteria','Boate','Borracharia','Boutique','Buffet','Cabeleireiro','Café','Câmbio','Camping','Casa de câmbio','Casa de festas','Casa noturna','Chaveiro','Cinema','Clínica de estética','Clínica de fisioterapia','Clínica de nutrição','Clínica de psicologia','Clínica de reabilitação','Clínica médica','Clínica odontológica','Clínica veterinária','Clube','Colégio','Compra e venda de veículos','Concessionária','Confeitaria','Construtora','Consultório de psicologia','Consultório fisioterapêutico','Consultório médico','Consultório odontológico','Contabilidade','Cooperativa','Coworking','Creche','Decoração','Delivery de comida','Dentista','Dentista pediatra','Depósito de materiais','Designer de interiores','Designer gráfico','Despachante','Distribuidora','Educação infantil','Elétrica predial','Eletricista','Empresa de mudanças','Empresa de tecnologia','Enfermagem','Engenharia civil','Escola','Escola de idiomas','Escola de música','Esteticista','Estética automotiva','Estética corporal','Estética facial','Estúdio de fotografia','Estúdio de tatuagem','Exames laboratoriais','Farmácia','Financeira','Fisioterapeuta','Floricultura','Fotografia','Fotógrafo','Franquia','Funilaria','Funileiro','Gráfica','Hamburgueria','Hamburgueria artesanal','Hidráulica','Hotel','Igreja','Imobiliária','Importadora','Instalação de ar condicionado','Instalação elétrica','Instituto de beleza','Jardinagem','Joalheria','Laboratório','Lanchonete','Lavagem de veículos','Lavanderia','Loja de artigos esportivos','Loja de brinquedos','Loja de calçados','Loja de cosméticos','Loja de eletrônicos','Loja de informática','Loja de material de construção','Loja de móveis','Loja de roupas','Loja de suplementos','Loja virtual','Manicure','Marketing digital','Marmoraria','Massagem','Material de construção','Mecânico','Médico','Médico cardiologista','Médico clínico geral','Médico dermatologista','Médico ginecologista','Médico neurologista','Médico ortopedista','Médico pediatra','Médico psiquiatra','Médico urologista','Mercearia','Minimercado','Montagem de móveis','Motoboy','Nutricionista','Oficina de bicicletas','Oficina de eletrônicos','Oficina mecânica','Padaria','Paisagismo','Panificadora','Papelaria','Pedreiro','Pensão','Personal trainer','Petshop','Pintor','Pintura predial','Pizzaria','Plano de saúde','Pneus','Pousada','Pousada rural','Produtos naturais','Professor particular','Psicólogo','Psiquiatra','Publicidade','Reciclagem','Reformas','Reparação de computadores','Restaurante','Restaurante italiano','Restaurante japonês','Restaurante vegetariano','Salão de beleza','Salão de jogos','Serviço automotivo','Serviço de contabilidade','Serviço de entrega','Serviço de jardinagem','Serviço de limpeza','Serviço de pintura','Serviço de reformas','Serviço de segurança','Serviço elétrico','Serviço hidráulico','Sistema de segurança','Sorveteria','Sorveteria artesanal','Spa','Supermercado','Suplementos alimentares','Tatuagem','Técnico de refrigeração','Técnico em informática','Tecnologia da informação','Topografia','Transporte escolar','Uniformes','Veterinário','Vidraçaria','Zootecnista'].sort();
 
 // CATEGORY AUTOCOMPLETE
 function acCategory(val, listId, inputId){
@@ -718,22 +769,51 @@ function acCategory(val, listId, inputId){
   list.innerHTML=m.map(c=>`<div class="ac-item" onclick="pickCategory('${c.replace(/'/g,"\\'")}','${listId}','${inputId}')">${c}</div>`).join('');
   list.style.display='block';
 }
+function findCategory(val){
+  const v=val.trim().toLowerCase();
+  return GMN_CATS.find(c=>c.toLowerCase()===v)||null;
+}
+// devolve o nome a usar, ou null se a categoria deve ser recusada
+function checkCategory(val){
+  const canon=findCategory(val);
+  if(canon) return canon;
+  if(CATS_OFFICIAL){toast('Categoria fora da lista oficial do Google. Escolha uma das sugestões.','err');return null}
+  toast('⚠ Fora da lista de referência: confirme o nome exato no seu Perfil da Empresa');
+  return val.trim();
+}
+function updateCatSourceNote(info){
+  const el=document.getElementById('catSourceNote'); if(!el) return;
+  el.innerHTML=CATS_OFFICIAL
+    ?`✔ Lista oficial do Google${info?` (${info})`:''}.`
+    :`ℹ️ Lista de referência, <strong>não oficial</strong>. Confira o nome exato no seu Perfil da Empresa. Para usar a lista oficial, gere o arquivo com <code>tools/baixar_categorias_gbp.py</code>.`;
+}
+async function loadOfficialCategories(){
+  try{
+    const r=await fetch('/static/categorias_gbp.json',{cache:'no-cache'});
+    if(r.ok){
+      const j=await r.json();
+      const names=(j.categorias||[]).map(c=>c.nome||c.displayName).filter(Boolean);
+      if(names.length){
+        GMN_CATS=[...new Set(names)].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+        CATS_OFFICIAL=true;
+        updateCatSourceNote(`${names.length} categorias${j.gerado_em?', gerada em '+j.gerado_em.slice(0,10):''}`);
+        return;
+      }
+    }
+  }catch{}
+  updateCatSourceNote();
+}
 function pickCategory(val, listId, inputId){
   document.getElementById(inputId).value=val;
   document.getElementById(listId).style.display='none';
   if(inputId==='mainCategory') confirmMainCat();
-  else {
-    // For subcategories, add as tag
-    if(!tagState.cat.includes(val)){
-      tagState.cat.push(val);
-      renderTags('cat');
-    }
-    document.getElementById(inputId).value='';
-  }
+  else addSubcat();
 }
 function confirmMainCat(){
-  const val=document.getElementById('mainCategory').value.trim();
-  if(!val) return;
+  const raw=document.getElementById('mainCategory').value.trim();
+  if(!raw) return;
+  const val=checkCategory(raw); if(!val) return;
+  document.getElementById('mainCategory').value=val;
   const confirmed=document.getElementById('mainCatConfirmed');
   document.getElementById('mainCatLabel').textContent='🏷️ '+val;
   confirmed.style.display='flex';
@@ -784,7 +864,7 @@ function navTo(id,el){
 function initMinimap(){
   if(S.map) return;
   S.map=L.map('minimap').setView([-15.78,-47.93],4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(S.map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',maxZoom:19}).addTo(S.map);
   S.map.on('click',e=>{
     const{lat,lng}=e.latlng;
     document.getElementById('lat').value=lat.toFixed(6);
@@ -940,7 +1020,7 @@ function renderGallery(){
 function selectFile(i){
   S.files.forEach(f=>f.active=false);S.files[i].active=true;
   const f=S.files[i];
-  ['desc','artist','date','city','state','country','address','website','email','lat','lon','alt','mainCategory'].forEach(k=>{
+  ['desc','artist','city','state','country','address','website','email','lat','lon','alt','mainCategory'].forEach(k=>{
     const el=document.getElementById(k);if(el) el.value=f.exif?.[k]||'';
   });
   // copyright e date têm valores fixos/automáticos — não sobrescreve com EXIF da foto
@@ -983,7 +1063,8 @@ function getMeta(){
     desc:document.getElementById('desc').value,
     artist:document.getElementById('artist').value,
     copyright:document.getElementById('copyright').value,
-    date:document.getElementById('date').value,
+    date:document.getElementById('date').value.trim(),
+    date_force:document.getElementById('dateForce').checked?'1':'0',
     city:document.getElementById('city').value,
     state:document.getElementById('state').value,
     country:document.getElementById('country').value,
@@ -1030,19 +1111,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  // Copyright fixo da RFA
-  const yr = new Date().getFullYear();
-  const cpEl = document.getElementById('copyright');
-  if(cpEl) cpEl.value = `© ${yr} RFA Marketing Digital — CNPJ: 64.810.923/0001-91 — Todos os direitos reservados`;
-
-  // Data atual no formato EXIF: YYYY:MM:DD HH:MM:SS
-  const dateEl = document.getElementById('date');
-  if(dateEl && !dateEl.value){
-    const now = new Date();
-    const pad = n => String(n).padStart(2,'0');
-    dateEl.value = `${now.getFullYear()}:${pad(now.getMonth()+1)}:${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  }
+  // Copyright padrão da RFA (editável)
+  restoreCopyright();
 });
+
+function restoreCopyright(){
+  const el=document.getElementById('copyright');
+  if(el) el.value=`© ${new Date().getFullYear()} RFA Marketing Digital — CNPJ: 64.810.923/0001-91 — Todos os direitos reservados`;
+}
 
 // CEP
 function maskCep(el){let v=el.value.replace(/\D/g,'');if(v.length>5)v=v.slice(0,5)+'-'+v.slice(5,8);el.value=v}
@@ -1171,9 +1247,27 @@ function setOutdir(){ toast('Use o botão de download'); } function _setOutdir_u
 }
 
 // PASSO 1: PROCESSAR com progresso real 0-100%
+function distKm(la1,lo1,la2,lo2){
+  const R=6371,r=x=>x*Math.PI/180,dLa=r(la2-la1),dLo=r(lo2-lo1);
+  const a=Math.sin(dLa/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
 async function processarFotos(){
   const sel=S.files.filter(f=>f.checked);
   if(!sel.length){toast('Selecione ao menos 1 foto','err');return}
+
+  const gLat=parseFloat(document.getElementById('lat').value), gLon=parseFloat(document.getElementById('lon').value);
+  if(!isNaN(gLat)&&!isNaN(gLon)){
+    const diverge=sel.filter(f=>{
+      const e=f.exif||{};
+      return e.lat==null||e.lon==null||distKm(e.lat,e.lon,gLat,gLon)>0.5;
+    });
+    if(diverge.length&&!confirm(
+      `Atenção: ${diverge.length} de ${sel.length} foto(s) não têm GPS original ou foram tiradas em outro local.\n\n`+
+      `As coordenadas ${gLat.toFixed(5)}, ${gLon.toFixed(5)} serão gravadas nelas.\n\n`+
+      `O Google pede que as fotos representem a realidade. Confirma que foram tiradas neste local?`)) return;
+  }
 
   // Reset progress
   const pw=document.getElementById('progressWrap');
@@ -1229,6 +1323,14 @@ async function processarFotos(){
         ${ok===sel.length?'✅':'⚠️'} ${ok} de ${sel.length} foto(s) processada(s)
       </div>${html}
     </div>`;
+  const MB=1024*1024;
+  const big=results.filter(r=>r.ok&&r.size>5*MB);
+  const tiny=results.filter(r=>r.ok&&(r.size<10*1024||r.w<250||r.h<250));
+  const warns=[];
+  if(big.length) warns.push(`⚠️ ${big.length} foto(s) acima de 5 MB — o Google pode recusar: ${big.slice(0,5).map(r=>`${r.out} (${(r.size/MB).toFixed(1)} MB)`).join(', ')}${big.length>5?'…':''}. Reduza a qualidade JPEG ou escolha um formato fixo.`);
+  if(tiny.length) warns.push(`⚠️ ${tiny.length} foto(s) abaixo do mínimo do Google (10 KB ou 250×250 px): ${tiny.slice(0,5).map(r=>r.out).join(', ')}${tiny.length>5?'…':''}.`);
+  if(warns.length) document.getElementById('processResults').insertAdjacentHTML('beforeend',
+    `<div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:var(--r);padding:8px 10px;margin-top:8px;font-size:11px;color:#7c5200;line-height:1.5">${warns.join('<br>')}</div>`);
   if(S.lastOutDir){
     const btn=document.getElementById('btnOpenFolder');
     if(btn){btn.style.display='inline-flex';btn.onclick=()=>openFolder(S.lastOutDir);}
@@ -1281,9 +1383,15 @@ function pickModelName(name){
 
 // SUBCATEGORIES LIST (separate from tags)
 let subcatList=[];
+const MAX_SUBCATS=9;
 function addSubcat(){
-  const val=document.getElementById('catInput').value.trim();
-  if(!val||subcatList.includes(val)) return;
+  const raw=document.getElementById('catInput').value.trim();
+  if(!raw) return;
+  const val=checkCategory(raw); if(!val) return;
+  if(subcatList.includes(val)){document.getElementById('catInput').value='';return}
+  if(val.toLowerCase()===(document.getElementById('mainCategory').value||'').trim().toLowerCase()){
+    toast('Essa já é a categoria principal','err');return}
+  if(subcatList.length>=MAX_SUBCATS){toast(`O Google permite no máximo ${MAX_SUBCATS} categorias adicionais`,'err');return}
   subcatList.push(val);
   renderSubcats();
   document.getElementById('catInput').value='';
@@ -1293,6 +1401,8 @@ function removeSubcat(val){
   renderSubcats();
 }
 function renderSubcats(){
+  const cnt=document.getElementById('subcatCount');
+  if(cnt) cnt.innerHTML=`${subcatList.length}/${MAX_SUBCATS}`+(subcatList.length>3?' <span style="color:#b45309">— o Google recomenda poucas (2 a 3) e que descrevam o negócio, não cada serviço</span>':'');
   const el=document.getElementById('subcatList');
   if(!el) return;
   el.innerHTML=subcatList.map(v=>`
@@ -1369,6 +1479,7 @@ async function saveModel(){
   if(!name){toast('Digite um nome','err');return}
   const meta=getMeta();
   meta.kwTags=tagState.kw;
+  meta.date='';meta.date_force='0';
   meta.subcatList=subcatList;
   meta.street=document.getElementById('street')?.value||'';
   meta.number=document.getElementById('number')?.value||'';
@@ -1416,7 +1527,7 @@ function applyModel(m){
   ['street','number','complement','neighborhood','city','state','country','website','email','mainCategory','lat','lon','alt'].forEach(k=>{
     const el=document.getElementById(k);if(el&&m[k]) el.value=m[k];
   });
-  ['desc','artist','copyright','date'].forEach(k=>{
+  ['desc','artist','copyright'].forEach(k=>{
     const el=document.getElementById(k);if(el&&m[k]) el.value=m[k];
   });
   if(m.rating){curRating=parseInt(m.rating)||0;S.rating=curRating;renderStars(curRating);}
@@ -1449,9 +1560,14 @@ async function clearAll(){
   toast('🗑 Sessão limpa');
 }
 
+function openPrivacy(){document.getElementById('privacy-modal').classList.add('show')}
+function closePrivacy(){document.getElementById('privacy-modal').classList.remove('show')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape') closePrivacy()});
+
 // INIT
 updateCounts();updateExportCount();
 setTimeout(initMinimap,500);
+loadOfficialCategories();
 </script>
 </body>
 </html>

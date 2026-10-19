@@ -3,3 +3,7 @@ __pycache__/
 uploads/
 *.zip
 .env
+
+# credenciais do Google (nunca versionar)
+client_secret*.json
+token_gbp.json

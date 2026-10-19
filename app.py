@@ -1,4 +1,4 @@
-import os, json, shutil, io, zipfile, uuid
+import os, json, shutil, io, zipfile, uuid, re, time, threading
 from flask import Flask, render_template, request, jsonify, send_file, session
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -12,6 +12,9 @@ app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 UPLOAD_BASE = '/tmp/cp_uploads'
 MODELS_FILE = os.environ.get('CRAZYPRO_MODELS_FILE') or os.path.join(os.path.expanduser('~'), '.crazypro_rfa', 'models.json')
 LEGACY_MODELS_FILE = '/tmp/cp_models.json'
+RETENTION_HOURS = float(os.environ.get('CRAZYPRO_RETENTION_HOURS', '24'))
+_contact = os.environ.get('CRAZYPRO_CONTACT', '').strip()
+NOMINATIM_UA = 'CrazyPro-RFA/1.0' + (f' ({_contact})' if _contact else '')
 SUPPORTED = {'.jpg','.jpeg','.tiff','.tif','.dng','.nef','.raf','.crw','.raw','.png'}
 
 try:
@@ -29,6 +32,38 @@ def user_dir(sid):
     os.makedirs(d, exist_ok=True)
     os.makedirs(os.path.join(d, 'output'), exist_ok=True)
     return d
+
+def cleanup_old_uploads(keep_sid=None):
+    limit=time.time()-RETENTION_HOURS*3600
+    try: names=os.listdir(UPLOAD_BASE)
+    except FileNotFoundError: return
+    for name in names:
+        p=os.path.join(UPLOAD_BASE,name)
+        if name==keep_sid or not os.path.isdir(p): continue
+        try:
+            newest=max(os.path.getmtime(p), os.path.getmtime(os.path.join(p,'output')) if os.path.isdir(os.path.join(p,'output')) else 0)
+            if newest<limit: shutil.rmtree(p,ignore_errors=True)
+        except OSError: pass
+
+_nom_lock=threading.Lock(); _nom_last=[0.0]; _nom_cache={}
+def nominatim_get(path, params):
+    key=(path,tuple(sorted(params.items())))
+    if key in _nom_cache: return _nom_cache[key]
+    with _nom_lock:
+        wait=1.1-(time.time()-_nom_last[0])
+        if wait>0: time.sleep(wait)
+        r=req.get('https://nominatim.openstreetmap.org/'+path,params=params,
+                  headers={'User-Agent':NOMINATIM_UA},timeout=8)
+        _nom_last[0]=time.time()
+    if getattr(r,'status_code',200)!=200: raise RuntimeError(f'HTTP {r.status_code}')
+    data=r.json()
+    if len(_nom_cache)>200: _nom_cache.clear()
+    _nom_cache[key]=data
+    return data
+
+EXIF_DATE_RE=re.compile(r'^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$')
+def valid_exif_date(v):
+    return bool(v) and bool(EXIF_DATE_RE.match(v)) and not v.startswith('0000')
 
 def load_json(p):
     try: return json.load(open(p))
@@ -101,7 +136,7 @@ def build_full_xmp(meta):
         socials=_j.loads(meta.get('social','[]'))
         if socials: authors_position=esc(socials[0].get('net',''))
     except: pass
-    lat=meta.get('lat'); lon=meta.get('lon'); alt=meta.get('alt') or 0
+    lat=meta.get('lat'); lon=meta.get('lon')
     kw_raw=meta.get('keywords','')
     keywords=[esc(k.strip()) for k in kw_raw.split(',') if k.strip()] if kw_raw else []
     cat_raw=meta.get('categories','')
@@ -111,21 +146,22 @@ def build_full_xmp(meta):
     sub_items='\n'.join(f'    <rdf:li>{c}</rdf:li>' for c in subcats)
     sub_block=f'  <photoshop:SupplementalCategories>\n   <rdf:Bag>\n{sub_items}\n   </rdf:Bag>\n  </photoshop:SupplementalCategories>' if subcats else ''
 
-    gps_lat_xmp=gps_lon_xmp=gps_alt_xmp=gps_timestamp=''
-    gps_direction='0/1'; gps_direction_ref='M'
+    gps_block=''
     if lat and lon:
         try:
             flat=float(lat); flon=float(lon)
             flat_d=int(abs(flat)); flat_m=(abs(flat)-flat_d)*60
             flon_d=int(abs(flon)); flon_m=(abs(flon)-flon_d)*60
             lat_ref='S' if flat<0 else 'N'; lon_ref='W' if flon<0 else 'E'
-            gps_lat_xmp=f'{flat_d},{flat_m:.6f}{lat_ref}'
-            gps_lon_xmp=f'{flon_d},{flon_m:.6f}{lon_ref}'
-            gps_alt_xmp=f'{int(float(alt))}/1'
-            # GPS Timestamp — use current datetime or from meta
-            from datetime import timezone
-            gps_timestamp=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-        except: pass
+            gps_block=(f"  <exif:GPSLatitude>{flat_d},{flat_m:.6f}{lat_ref}</exif:GPSLatitude>\n"
+                       f"  <exif:GPSLongitude>{flon_d},{flon_m:.6f}{lon_ref}</exif:GPSLongitude>\n"
+                       "  <exif:GPSMapDatum>WGS-84</exif:GPSMapDatum>\n"
+                       "  <exif:GPSVersionID>2.2.0.0</exif:GPSVersionID>\n")
+            if meta.get('alt') not in (None,''):
+                av=float(meta.get('alt'))
+                gps_block+=(f"  <exif:GPSAltitude>{int(round(abs(av)))}/1</exif:GPSAltitude>\n"
+                            f"  <exif:GPSAltitudeRef>{0 if av>=0 else 1}</exif:GPSAltitudeRef>\n")
+        except: gps_block=''
 
     ms_rating=99 if rating==5 else(75 if rating==4 else(50 if rating==3 else(25 if rating==2 else(1 if rating==1 else 0))))
     country_code=country[:3].upper() if country else 'BRA'
@@ -140,6 +176,10 @@ def build_full_xmp(meta):
     except: pass
 
     now_iso=datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    exif_dates=(f"  <exif:DateTimeOriginal>{photoshop_date}</exif:DateTimeOriginal>\n"
+                f"  <exif:DateTimeDigitized>{photoshop_date}</exif:DateTimeDigitized>\n") if photoshop_date else ''
+    ps_date=f"  <photoshop:DateCreated>{photoshop_date}</photoshop:DateCreated>\n" if photoshop_date else ''
+    xmp_create=f"  <xmp:CreateDate>{photoshop_date}</xmp:CreateDate>\n" if photoshop_date else ''
 
     # xmpMM document IDs — unique per export
     import uuid as _uuid
@@ -182,18 +222,7 @@ def build_full_xmp(meta):
 
  <rdf:Description rdf:about=''
   xmlns:exif='http://ns.adobe.com/exif/1.0/'>
-  <exif:DateTimeOriginal>{photoshop_date}</exif:DateTimeOriginal>
-  <exif:DateTimeDigitized>{photoshop_date}</exif:DateTimeDigitized>
-  <exif:GPSAltitude>{gps_alt_xmp}</exif:GPSAltitude>
-  <exif:GPSAltitudeRef>0</exif:GPSAltitudeRef>
-  <exif:GPSImgDirection>{gps_direction}</exif:GPSImgDirection>
-  <exif:GPSImgDirectionRef>{gps_direction_ref}</exif:GPSImgDirectionRef>
-  <exif:GPSLatitude>{gps_lat_xmp}</exif:GPSLatitude>
-  <exif:GPSLongitude>{gps_lon_xmp}</exif:GPSLongitude>
-  <exif:GPSMapDatum>WGS-84</exif:GPSMapDatum>
-  <exif:GPSTimeStamp>{gps_timestamp}</exif:GPSTimeStamp>
-  <exif:GPSVersionID>2.2.0.0</exif:GPSVersionID>
- </rdf:Description>
+{exif_dates}{gps_block} </rdf:Description>
 
  <rdf:Description rdf:about=''
   xmlns:photoshop='http://ns.adobe.com/photoshop/1.0/'>
@@ -203,8 +232,7 @@ def build_full_xmp(meta):
   <photoshop:City>{city}</photoshop:City>
   <photoshop:Country>{country}</photoshop:Country>
   <photoshop:Credit>{artist}</photoshop:Credit>
-  <photoshop:DateCreated>{photoshop_date}</photoshop:DateCreated>
-  <photoshop:Headline>{title}</photoshop:Headline>
+{ps_date}  <photoshop:Headline>{title}</photoshop:Headline>
   <photoshop:Instructions>{desc}</photoshop:Instructions>
   <photoshop:Source>{artist}</photoshop:Source>
   <photoshop:State>{state}</photoshop:State>
@@ -221,8 +249,7 @@ def build_full_xmp(meta):
   <xmp:Rating>{rating}</xmp:Rating>
   <xmp:BaseURL>{website}</xmp:BaseURL>
   <xmp:CreatorTool>CrazyPro RFA</xmp:CreatorTool>
-  <xmp:CreateDate>{photoshop_date}</xmp:CreateDate>
-  <xmp:ModifyDate>{now_iso}</xmp:ModifyDate>
+{xmp_create}  <xmp:ModifyDate>{now_iso}</xmp:ModifyDate>
   <xmp:MetadataDate>{now_iso}</xmp:MetadataDate>
  </rdf:Description>
 
@@ -316,6 +343,7 @@ def resize_crop_center(img, w, h):
 def write_exif(src, meta, out_path):
     try:
         img=Image.open(src)
+        src_exif_raw=img.info.get('exif',b'')
         if img.mode not in('RGB','L'): img=img.convert('RGB')
 
         # Resize for Google Meu Negócio if requested
@@ -328,14 +356,34 @@ def write_exif(src, meta, out_path):
                 print(f"resize warning: {e}")
 
         try:
-            raw=img.info.get('exif',b'')
-            exif=piexif.load(raw) if raw else {'0th':{},'Exif':{},'GPS':{},'1st':{}}
+            exif=piexif.load(src_exif_raw) if src_exif_raw else {'0th':{},'Exif':{},'GPS':{},'1st':{}}
         except: exif={'0th':{},'Exif':{},'GPS':{},'1st':{}}
         z,gps,exif_ifd=exif.get('0th',{}),exif.get('GPS',{}),exif.get('Exif',{})
+
+        # Data de captura: preserva a original da foto; a data do formulário só entra
+        # em fotos sem data, ou quando o usuário pedir para substituir (date_force).
+        def _dec(v): return v.decode(errors='ignore').strip('\x00').strip() if isinstance(v,bytes) else ''
+        orig_date=''
+        for _ifd,_tag in ((exif_ifd,piexif.ExifIFD.DateTimeOriginal),(exif_ifd,piexif.ExifIFD.DateTimeDigitized),(z,piexif.ImageIFD.DateTime)):
+            _v=_dec(_ifd.get(_tag))
+            if valid_exif_date(_v): orig_date=_v; break
+        form_date=(meta.get('date') or '').strip()
+        if form_date and not valid_exif_date(form_date):
+            print(f"data ignorada (formato inválido): {form_date!r}"); form_date=''
+        force=str(meta.get('date_force',''))=='1'
+        eff_date=form_date if (force and form_date) else (orig_date or form_date)
+        meta=dict(meta); meta['date']=eff_date
+        if eff_date:
+            _b=eff_date.encode('utf-8')
+            for _ifd,_tag in ((exif_ifd,piexif.ExifIFD.DateTimeOriginal),(exif_ifd,piexif.ExifIFD.DateTimeDigitized),(z,piexif.ImageIFD.DateTime)):
+                if force or not valid_exif_date(_dec(_ifd.get(_tag))): _ifd[_tag]=_b
+        # dimensões declaradas no EXIF acompanham a imagem final
+        if piexif.ExifIFD.PixelXDimension in exif_ifd: exif_ifd[piexif.ExifIFD.PixelXDimension]=img.size[0]
+        if piexif.ExifIFD.PixelYDimension in exif_ifd: exif_ifd[piexif.ExifIFD.PixelYDimension]=img.size[1]
+
         for val,tag in [(meta.get('desc'),piexif.ImageIFD.ImageDescription),
                         (meta.get('artist'),piexif.ImageIFD.Artist),
-                        (meta.get('copyright'),piexif.ImageIFD.Copyright),
-                        (meta.get('date'),piexif.ImageIFD.DateTime)]:
+                        (meta.get('copyright'),piexif.ImageIFD.Copyright)]:
             if val:
                 try:
                     encoded = str(val).encode('utf-8')
@@ -355,14 +403,6 @@ def write_exif(src, meta, out_path):
         if meta.get('artist'): z[piexif.ImageIFD.XPAuthor]=_xp(meta['artist'])
         if kw_str: z[piexif.ImageIFD.XPKeywords]=_xp(kw_str)
         if meta.get('mainCategory'): z[piexif.ImageIFD.XPSubject]=_xp(meta['mainCategory'])
-        # DateTimeOriginal + DateTimeDigitized in Exif sub-IFD (used by Google as "photo taken on")
-        date_val = meta.get('date','')
-        if date_val:
-            try:
-                dt_bytes = str(date_val).encode('utf-8')
-                exif_ifd[piexif.ExifIFD.DateTimeOriginal]  = dt_bytes
-                exif_ifd[piexif.ExifIFD.DateTimeDigitized] = dt_bytes
-            except: pass
         lat=meta.get('lat'); lon=meta.get('lon'); alt=meta.get('alt')
         if lat and lon:
             lat,lon=float(lat),float(lon)
@@ -372,13 +412,6 @@ def write_exif(src, meta, out_path):
             gps[piexif.GPSIFD.GPSLongitudeRef]   = b'E' if lon>=0 else b'W'
             gps[piexif.GPSIFD.GPSLongitude]      = deg_to_dms(lon)
             gps[piexif.GPSIFD.GPSMapDatum]       = b'WGS-84'
-            gps[piexif.GPSIFD.GPSImgDirectionRef]= b'M'
-            gps[piexif.GPSIFD.GPSImgDirection]   = (0, 1)
-            from datetime import timezone as _tz
-            _now = datetime.now(_tz.utc)
-            gps[piexif.GPSIFD.GPSTimeStamp] = (
-                (_now.hour,1), (_now.minute,1), (_now.second,1))
-            gps[piexif.GPSIFD.GPSDateStamp] = _now.strftime('%Y:%m:%d').encode()
         if alt:
             av=float(alt)
             gps[piexif.GPSIFD.GPSAltitude]=(int(abs(av)*100),100)
@@ -400,6 +433,7 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     sid=get_sid(); ud=user_dir(sid)
+    cleanup_old_uploads(keep_sid=sid)
     files=request.files.getlist('files'); saved=[]
     for f in files:
         orig_name = f.filename
@@ -463,7 +497,13 @@ def apply():
         while os.path.exists(out_path) and out_path!=os.path.join(out_dir,orig_base+'.jpg'):
             out_name=f"{base}_{counter}.jpg"; out_path=os.path.join(out_dir,out_name); counter+=1
         ok=write_exif(src,meta,out_path)
-        results.append({'file':fname,'out':out_name,'ok':ok,'sid':sid})
+        item={'file':fname,'out':out_name,'ok':ok,'sid':sid}
+        if ok:
+            try:
+                item['size']=os.path.getsize(out_path)
+                with Image.open(out_path) as _im: item['w'],item['h']=_im.size
+            except Exception: pass
+        results.append(item)
     return jsonify({'results':results,'sid':sid})
 
 @app.route('/download_all/<sid>')
@@ -546,10 +586,7 @@ def busca_cep(cep):
 def geocode():
     q=request.args.get('q','')
     try:
-        r=req.get('https://nominatim.openstreetmap.org/search',
-            params={'q':q,'format':'json','limit':1},
-            headers={'User-Agent':'CrazyPro-RFA/1.0'},timeout=8)
-        return jsonify(r.json())
+        return jsonify(nominatim_get('search',{'q':q,'format':'json','limit':1}))
     except: return jsonify([]),400
 
 @app.route('/reverse')
@@ -560,10 +597,7 @@ def reverse_geocode():
     except (TypeError,ValueError):
         return jsonify({'erro':'coordenadas inválidas'}),400
     try:
-        r=req.get('https://nominatim.openstreetmap.org/reverse',
-            params={'lat':lat,'lon':lon,'format':'jsonv2','addressdetails':1,'accept-language':'pt-BR','zoom':18},
-            headers={'User-Agent':'CrazyPro-RFA/1.0'},timeout=8)
-        d=r.json()
+        d=nominatim_get('reverse',{'lat':lat,'lon':lon,'format':'jsonv2','addressdetails':1,'accept-language':'pt-BR','zoom':18})
     except Exception:
         return jsonify({'erro':'serviço de endereços indisponível'}),502
     a=d.get('address') or {}
