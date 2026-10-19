@@ -785,7 +785,7 @@ function updateCatSourceNote(info){
   const el=document.getElementById('catSourceNote'); if(!el) return;
   el.innerHTML=CATS_OFFICIAL
     ?`✔ Lista oficial do Google${info?` (${info})`:''}.`
-    :`ℹ️ Lista de referência, <strong>não oficial</strong>. Confira o nome exato no seu Perfil da Empresa. Para usar a lista oficial, gere o arquivo com <code>tools/baixar_categorias_gbp.py</code>.`;
+    :`ℹ️ Lista de referência, <strong>não oficial</strong>. Confira o nome exato no seu Perfil da Empresa.`;
 }
 async function loadOfficialCategories(){
   try{
