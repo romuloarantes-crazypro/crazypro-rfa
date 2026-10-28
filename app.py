@@ -1,23 +1,64 @@
-import os, json, shutil, io, zipfile, uuid, re, time, threading
-from flask import Flask, render_template, request, jsonify, send_file, session
+import os, json, shutil, io, zipfile, uuid, re, time, threading, hmac
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, abort
 from werkzeug.utils import secure_filename
 from PIL import Image
 import piexif, requests as req
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'crazypro-rfa-2026')
-app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
-UPLOAD_BASE = '/tmp/cp_uploads'
 APP_NAME = 'ExifBoost Pro'
 
 def _env(name, default=''):
     # EXIFBOOST_* é o nome atual; CRAZYPRO_* continua valendo para instalações antigas
     return os.environ.get('EXIFBOOST_' + name) or os.environ.get('CRAZYPRO_' + name) or default
 
+# ---- Modo online (hospedado) x modo local --------------------------------------
+# Online: EXIFBOOST_ENV=production, SECRET_KEY e EXIFBOOST_ACCESS_CODES são obrigatórios.
+# EXIFBOOST_ACCESS_CODES="equipe1=codigo-secreto-1,equipe2=codigo-secreto-2"
+# Cada código abre um espaço de trabalho separado (modelos salvos isolados).
+PRODUCTION = _env('ENV').lower() == 'production' or bool(os.environ.get('RAILWAY_ENVIRONMENT'))
+
+def _parse_access_codes(raw):
+    out = {}
+    for item in (raw or '').split(','):
+        item = item.strip()
+        if not item: continue
+        ws, sep, code = item.partition('=')
+        ws, code = ws.strip().lower(), code.strip()
+        if not sep or not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,39}', ws):
+            raise RuntimeError(f"EXIFBOOST_ACCESS_CODES inválido perto de {item[:20]!r}: use equipe=codigo,equipe2=codigo2 (equipe só com letras minúsculas, números, - e _)")
+        if len(code) < 8:
+            raise RuntimeError(f"O código da equipe '{ws}' tem menos de 8 caracteres.")
+        if ws in out or code in out.values():
+            raise RuntimeError(f"Equipe ou código repetido em EXIFBOOST_ACCESS_CODES ('{ws}').")
+        out[ws] = code
+    return out
+
+ACCESS_CODES = _parse_access_codes(_env('ACCESS_CODES'))
+AUTH_ENABLED = bool(ACCESS_CODES)
+_secret = os.environ.get('SECRET_KEY', '')
+if PRODUCTION:
+    if len(_secret) < 16:
+        raise RuntimeError('Versão online: defina a variável SECRET_KEY com pelo menos 16 caracteres aleatórios.')
+    if not AUTH_ENABLED:
+        raise RuntimeError('Versão online: defina EXIFBOOST_ACCESS_CODES (equipe=codigo,...). O acesso não pode ficar aberto.')
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+app.secret_key = _secret or 'crazypro-rfa-2026'
+app.config.update(
+    MAX_CONTENT_LENGTH=int(float(_env('MAX_UPLOAD_MB', '200')) * 1024 * 1024),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=PRODUCTION,
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+)
+
 _home = os.path.expanduser('~')
-MODELS_FILE = _env('MODELS_FILE') or os.path.join(_home, '.exifboost_pro', 'models.json')
+UPLOAD_BASE = _env('UPLOAD_DIR') or '/tmp/cp_uploads'
+DATA_DIR = _env('DATA_DIR') or os.path.join(_home, '.exifboost_pro')
+MODELS_FILE = _env('MODELS_FILE') or os.path.join(DATA_DIR, 'models.json')
 OLD_HOME_MODELS_FILE = os.path.join(_home, '.crazypro_rfa', 'models.json')
 LEGACY_MODELS_FILE = '/tmp/cp_models.json'
 RETENTION_HOURS = float(_env('RETENTION_HOURS', '24'))
@@ -30,12 +71,32 @@ try:
 except:
     ICON_B64 = ''
 
+SID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+
 def get_sid():
-    if 'sid' not in session:
-        session['sid'] = str(uuid.uuid4())
-    return session['sid']
+    sid = session.get('sid')
+    if not (isinstance(sid, str) and SID_RE.match(sid)):
+        sid = str(uuid.uuid4()); session['sid'] = sid
+    return sid
+
+def require_own_sid(sid):
+    # a pasta temporária só pode ser acessada pela sessão que a criou
+    if not SID_RE.match(sid or '') or sid != session.get('sid'): abort(404)
+
+def safe_name(fn):
+    # nome de arquivo simples: sem pastas, sem '..', sem caracteres de controle
+    if (not isinstance(fn, str) or fn in ('', '.', '..') or os.path.basename(fn) != fn
+            or '\\' in fn or '\x00' in fn):
+        return None
+    return fn
+
+def clean_base(name):
+    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '_', str(name))
+    name = re.sub(r'\.{2,}', '_', name).strip(' .')
+    return name[:150]
 
 def user_dir(sid):
+    if not SID_RE.match(sid or ''): raise ValueError('sid inválido')
     d = os.path.join(UPLOAD_BASE, sid)
     os.makedirs(d, exist_ok=True)
     os.makedirs(os.path.join(d, 'output'), exist_ok=True)
@@ -84,11 +145,24 @@ def save_json(p, d):
         json.dump(d, f, ensure_ascii=False, indent=2)
     os.replace(tmp, p)
 
+_models_lock = threading.Lock()
+MAX_MODELS = 200
+
+def current_ws():
+    return session.get('ws') if AUTH_ENABLED else 'local'
+
+def models_path():
+    ws = current_ws()
+    if ws == 'local': return MODELS_FILE
+    if ws not in ACCESS_CODES: abort(401)
+    return os.path.join(DATA_DIR, 'workspaces', ws, 'models.json')
+
 def load_models():
-    if not os.path.exists(MODELS_FILE):
+    path = models_path()
+    if not os.path.exists(path) and path == MODELS_FILE:
         for old in (OLD_HOME_MODELS_FILE, LEGACY_MODELS_FILE):
             if os.path.exists(old): return load_json(old)
-    return load_json(MODELS_FILE)
+    return load_json(path)
 
 def deg_to_dms(deg):
     deg=abs(float(deg)); d=int(deg); m=int((deg-d)*60); s=round(((deg-d)*60-m)*60,4)
@@ -437,7 +511,7 @@ def write_exif(src, meta, out_path):
 
 @app.route('/')
 def index():
-    return render_template('index.html', icon=ICON_B64)
+    return render_template('index.html', icon=ICON_B64, auth=AUTH_ENABLED, ws=current_ws())
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -475,18 +549,29 @@ def upload():
 
 @app.route('/file/<sid>/<path:fn>')
 def serve_file(sid,fn):
-    return send_file(os.path.join(UPLOAD_BASE,sid,fn))
+    require_own_sid(sid)
+    name=safe_name(fn)
+    p=os.path.join(UPLOAD_BASE,sid,name) if name else ''
+    if not name or not os.path.isfile(p): abort(404)
+    return send_file(p)
 
 @app.route('/apply', methods=['POST'])
 def apply():
-    data=request.json; sid=data.get('sid') or get_sid()
+    data=request.get_json(silent=True) or {}
+    sid=get_sid()   # sempre a sessão do servidor, nunca um valor enviado pelo navegador
     ud=user_dir(sid); out_dir=os.path.join(ud,'output')
     files=data.get('files',[]); meta=data.get('meta',{}); rename=data.get('rename','')
-    index=data.get('index',0)
+    if not isinstance(files,list): files=[]
+    if not isinstance(meta,dict): meta={}
+    rename=rename if isinstance(rename,str) else ''
+    try: index=int(data.get('index',0) or 0)
+    except (TypeError,ValueError): index=0
     results=[]
     for i,fname in enumerate(files):
-        src=os.path.join(ud,fname)
-        if not os.path.exists(src): results.append({'file':fname,'ok':False,'msg':'não encontrado'}); continue
+        name=safe_name(fname)
+        src=os.path.join(ud,name) if name else ''
+        if not name or not os.path.isfile(src): results.append({'file':str(fname)[:100],'ok':False,'msg':'não encontrado'}); continue
+        fname=name
         # Get base name — remove ALL known image extensions safely
         import re
         orig_base = re.sub(r'\.(jpg|jpeg|png|tif|tiff|dng|nef|raf|crw|raw)$', '', fname, flags=re.IGNORECASE)
@@ -498,6 +583,7 @@ def apply():
             base=rename.replace('{n}',str(global_i+1).zfill(3)).replace('{name}',orig_base).replace('{date}',datetime.now().strftime('%Y%m%d'))
         else:
             base=orig_base
+        base=clean_base(base) or clean_base(orig_base) or f'foto_{global_i+1:03d}'
         # Always output as .jpg
         out_name=base+'.jpg'
         out_path=os.path.join(out_dir,out_name)
@@ -517,12 +603,13 @@ def apply():
 
 @app.route('/download_all/<sid>')
 def download_all(sid):
+    require_own_sid(sid)
     out_dir=os.path.join(UPLOAD_BASE,sid,'output')
     if not os.path.exists(out_dir): return 'Nenhum arquivo',404
     # Filtra só os arquivos da rodada atual se informado
     requested=request.args.get('files','')
     if requested:
-        files=[f for f in requested.split(',') if f and os.path.exists(os.path.join(out_dir,f))]
+        files=[f for f in requested.split(',') if safe_name(f) and os.path.isfile(os.path.join(out_dir,f))]
     else:
         files=[f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg','.jpeg'))]
     if not files: return 'Pasta vazia — processe as fotos primeiro',404
@@ -535,6 +622,7 @@ def download_all(sid):
 
 @app.route('/list_output/<sid>')
 def list_output(sid):
+    require_own_sid(sid)
     out_dir=os.path.join(UPLOAD_BASE,sid,'output')
     if not os.path.exists(out_dir): return jsonify([])
     files=[f for f in sorted(os.listdir(out_dir)) if f.lower().endswith(('.jpg','.jpeg'))]
@@ -542,20 +630,20 @@ def list_output(sid):
 
 @app.route('/download_file/<sid>/<fn>')
 def download_file(sid,fn):
-    p=os.path.join(UPLOAD_BASE,sid,'output',fn)
-    if not os.path.exists(p):
+    require_own_sid(sid)
+    name=safe_name(fn)
+    p=os.path.join(UPLOAD_BASE,sid,'output',name) if name else ''
+    if not name or not os.path.isfile(p):
         return ('não encontrado',404)
     return send_file(p, as_attachment=True, download_name=fn, mimetype='image/jpeg')
 
 @app.route('/clear', methods=['POST'])
 def clear():
-    sid=request.json.get('sid') or session.get('sid','')
-    if sid:
-        ud=os.path.join(UPLOAD_BASE,sid)
-        # Clear only uploads, keep output
-        for f in os.listdir(ud):
-            p=os.path.join(ud,f)
-            if os.path.isfile(p): os.remove(p)
+    ud=user_dir(get_sid())
+    # Clear only uploads, keep output
+    for f in os.listdir(ud):
+        p=os.path.join(ud,f)
+        if os.path.isfile(p): os.remove(p)
     return jsonify({'ok':True})
 
 @app.route('/cep/<cep>')
@@ -648,23 +736,94 @@ def get_models(): return jsonify(load_models())
 
 @app.route('/models',methods=['POST'])
 def save_model():
-    d=request.get_json(silent=True) or {}; name=(d.get('name') or '').strip()
+    d=request.get_json(silent=True) or {}; name=(d.get('name') or '').strip() if isinstance(d.get('name'),str) else ''
+    meta=d.get('meta',{})
     if not name: return jsonify({'error':'nome obrigatório'}),400
+    if len(name)>80: return jsonify({'error':'nome muito longo (máximo 80 caracteres)'}),400
+    if not isinstance(meta,dict) or len(json.dumps(meta))>100_000:
+        return jsonify({'error':'dados do modelo inválidos ou grandes demais'}),400
     try:
-        m=load_models(); m[name]=d.get('meta',{}); save_json(MODELS_FILE,m)
+        with _models_lock:
+            m=load_models()
+            if name not in m and len(m)>=MAX_MODELS:
+                return jsonify({'error':f'limite de {MAX_MODELS} modelos atingido'}),400
+            m[name]=meta; save_json(models_path(),m)
     except Exception as e:
         print(f"save_model error: {e}")
-        return jsonify({'error':f'não foi possível gravar em {MODELS_FILE}: {e}'}),500
+        return jsonify({'error':'não foi possível gravar o modelo no servidor'}),500
     return jsonify({'ok':True})
 
 @app.route('/models/<name>',methods=['DELETE'])
 def del_model(name):
     try:
-        m=load_models(); m.pop(name,None); save_json(MODELS_FILE,m)
+        with _models_lock:
+            m=load_models(); m.pop(name,None); save_json(models_path(),m)
     except Exception as e:
         print(f"del_model error: {e}")
-        return jsonify({'error':str(e)}),500
+        return jsonify({'error':'não foi possível remover o modelo'}),500
     return jsonify({'ok':True})
+
+# ---- Acesso por código de equipe --------------------------------------------------
+_login_fails = {}
+LOGIN_LIMIT, LOGIN_WINDOW, LOGIN_LOCK = 5, 600, 600
+
+def _login_locked(ip):
+    rec = _login_fails.get(ip)
+    return bool(rec and rec['until'] > time.time())
+
+def _login_fail(ip):
+    now = time.time()
+    if len(_login_fails) > 2000: _login_fails.clear()
+    rec = _login_fails.get(ip)
+    if not rec or now - rec['first'] > LOGIN_WINDOW: rec = {'n': 0, 'first': now, 'until': 0}
+    rec['n'] += 1
+    if rec['n'] >= LOGIN_LIMIT: rec['until'] = now + LOGIN_LOCK; rec['n'] = 0; rec['first'] = now
+    _login_fails[ip] = rec
+
+OPEN_ENDPOINTS = {'login', 'logout', 'health', 'static'}
+
+@app.before_request
+def require_login():
+    if not AUTH_ENABLED or request.endpoint in OPEN_ENDPOINTS: return
+    if session.get('ws') in ACCESS_CODES: return
+    if request.method == 'GET' and 'text/html' in request.headers.get('Accept', ''):
+        return redirect('/login')
+    return jsonify({'erro': 'login necessário'}), 401
+
+@app.after_request
+def security_headers(resp):
+    resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    resp.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    if PRODUCTION: resp.headers.setdefault('Strict-Transport-Security', 'max-age=15552000')
+    if AUTH_ENABLED: resp.headers.setdefault('Cache-Control', 'no-store')
+    return resp
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if not AUTH_ENABLED: return redirect('/')
+    erro = ''
+    if request.method == 'POST':
+        ip = request.remote_addr or '?'
+        if _login_locked(ip):
+            return render_template('login.html', icon=ICON_B64, erro='Muitas tentativas. Aguarde alguns minutos e tente de novo.'), 429
+        code = (request.form.get('codigo') or '').strip().encode('utf-8')
+        found = None
+        for ws, c in ACCESS_CODES.items():
+            if hmac.compare_digest(code, c.encode('utf-8')): found = ws
+        if found:
+            _login_fails.pop(ip, None)
+            session.clear(); session['ws'] = found; session.permanent = True; get_sid()
+            return redirect('/')
+        _login_fail(ip)
+        erro = 'Código inválido.'
+        return render_template('login.html', icon=ICON_B64, erro=erro), 401
+    return render_template('login.html', icon=ICON_B64, erro=erro)
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return jsonify({'ok': True})
 
 @app.route('/health')
 def health(): return jsonify({'status':'ok','version':'6.0'})

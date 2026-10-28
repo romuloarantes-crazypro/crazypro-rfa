@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ExifBoost Pro — Entrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1e3a5f;--blue:#2e6da4;--light:#5ba3d9;--bg:#f0f4f8;--surface:#fff;--border:#dde4ed;--text:#1a2535;--muted:#6b7a95;--red:#dc2626;--shadow:0 1px 4px rgba(30,58,95,.08),0 8px 28px rgba(30,58,95,.10)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px}
+main{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:28px 26px}
+.brand-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.logo{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);padding:3px;background:#fff;object-fit:contain}
+.brand{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.6px;color:var(--navy);line-height:1.1}
+.brand span{color:var(--light)}
+.sub{font-size:11px;color:var(--muted);margin-top:2px}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;color:var(--text)}
+input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,109,164,.12)}
+button{width:100%;margin-top:14px;padding:11px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+button:focus-visible{outline:3px solid rgba(91,163,217,.6);outline-offset:2px}
+.erro{margin-top:12px;font-size:12px;color:var(--red)}
+.nota{margin-top:18px;font-size:11px;color:var(--muted);line-height:1.5}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand-row">
+    {% if icon %}<img class="logo" src="{{ icon }}" alt="">{% endif %}
+    <div><div class="brand">ExifBoost <span>Pro</span></div><div class="sub">RFA Marketing Digital</div></div>
+  </div>
+  <form method="post" action="/login" autocomplete="off">
+    <label for="codigo">Código de acesso da equipe</label>
+    <input id="codigo" name="codigo" type="password" autocomplete="current-password" autofocus required>
+    {% if erro %}<div class="erro" role="alert">{{ erro }}</div>{% endif %}
+    <button type="submit">Entrar</button>
+  </form>
+  <p class="nota">Não tem um código? Peça à RFA Marketing Digital. Cada código abre um espaço separado, com os modelos salvos da sua equipe.</p>
+</main>
+</body>
+</html>

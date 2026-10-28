@@ -306,6 +306,7 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
       <button class="btn btn-ghost btn-sm" onclick="selectAll()">☑ Todas</button>
       <button class="btn btn-ghost btn-sm" onclick="selectNone()">☐ Nenhuma</button>
       <button class="btn btn-navy btn-sm" onclick="downloadAll()">⬇ ZIP</button>
+      {% if auth %}<span class="tb-stat" title="Equipe conectada">👥 <strong>{{ ws }}</strong></span><button class="btn btn-ghost btn-sm" onclick="logout()">Sair</button>{% endif %}
     </div>
   </div>
 
@@ -728,7 +729,8 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
       <h4>O que o app guarda</h4>
       <ul>
         <li>As fotos importadas e as geradas ficam numa pasta temporária do servidor, ligada à sua sessão. São apagadas ao usar "Limpar" e, automaticamente, depois de 24 horas sem uso.</li>
-        <li>Os modelos salvos ficam em arquivo na pasta do usuário que executa o app, até serem removidos por você.</li>
+        {% if auth %}<li>Os modelos salvos ficam no servidor, separados por equipe: só quem tem o código da equipe os vê. Ficam até serem removidos por você. A administração técnica do servidor pode acessar esses arquivos enquanto eles existirem.</li>
+        {% else %}<li>Os modelos salvos ficam em arquivo na pasta do usuário que executa o app, até serem removidos por você.</li>{% endif %}
         <li>O app usa um cookie de sessão apenas para identificar a sua pasta temporária. Não há rastreamento nem publicidade.</li>
       </ul>
       <h4>Serviços externos usados</h4>
@@ -752,6 +754,8 @@ textarea{resize:vertical;min-height:60px;line-height:1.5}
 <div class="toast" id="toast"></div>
 
 <script>
+(function(){const f=window.fetch;window.fetch=async function(...a){const r=await f.apply(this,a);if(r.status===401){window.location.href='/login'}return r}})();
+async function logout(){try{await fetch('/logout',{method:'POST'})}catch{} window.location.href='/login'}
 const CITIES=['São Paulo','Rio de Janeiro','Belo Horizonte','Salvador','Fortaleza','Curitiba','Manaus','Recife','Porto Alegre','Belém','Goiânia','Guarulhos','Campinas','São Luís','São Gonçalo','Maceió','Duque de Caxias','Natal','Teresina','Campo Grande','Nova Iguaçu','São Bernardo do Campo','João Pessoa','Santo André','Osasco','Ribeirão Preto','Sorocaba','Contagem','Uberlândia','Aracaju','Feira de Santana','Cuiabá','Joinville','Londrina','Juiz de Fora','Florianópolis','Santos','Jundiaí','Piracicaba','Bauru','São José dos Campos','Jaraguá do Sul','Blumenau','Chapecó','Cascavel','Foz do Iguaçu','Ponta Grossa','Maringá','Vitória','Vila Velha','Petrópolis','Mossoró','Caruaru','Montes Claros','Anápolis','Pelotas'];
 const STAR_LABELS=['Sem classificação','Baixa prioridade','Abaixo da média','Boa','Muito boa','Excelente'];
 const SOCIAL_OPTS=['Instagram','Facebook','TikTok','YouTube','LinkedIn','Twitter/X','WhatsApp','Pinterest','Outro'];
