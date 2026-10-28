@@ -1,11 +1,11 @@
 @echo off
-title CrazyPro RFA — Instalacao Windows
+title ExifBoost Pro — Instalacao Windows
 color 0A
 chcp 65001 >nul
 
 echo.
 echo  ╔══════════════════════════════════════════════╗
-echo  ║   CRAZYPRO RFA — Instalacao Windows         ║
+echo  ║   EXIFBOOST PRO — Instalacao Windows        ║
 echo  ║   RFA Marketing Digital                     ║
 echo  ╚══════════════════════════════════════════════╝
 echo.
@@ -69,10 +69,10 @@ echo.
 echo  Criando atalho na Area de Trabalho...
 powershell -NoProfile -Command ^
   "$ws=New-Object -ComObject WScript.Shell; ^
-   $s=$ws.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\CrazyPro RFA.lnk'); ^
+   $s=$ws.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\ExifBoost Pro.lnk'); ^
    $s.TargetPath='%DESTINO%\INICIAR.bat'; ^
    $s.WorkingDirectory='%DESTINO%'; ^
-   $s.Description='CrazyPro RFA Marketing Digital'; ^
+   $s.Description='ExifBoost Pro - RFA Marketing Digital'; ^
    $s.Save()" >nul 2>&1
 echo  OK: atalho criado na Area de Trabalho
 

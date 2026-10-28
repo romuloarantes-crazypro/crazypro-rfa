@@ -1,5 +1,5 @@
 @echo off
-title CrazyPro RFA — MODO EDICAO
+title ExifBoost Pro — MODO EDICAO
 color 0E
 chcp 65001 >nul
 cd /d "%~dp0"

@@ -1,12 +1,12 @@
 #!/bin/bash
-# CrazyPro RFA — Atualizar para última versão
+# ExifBoost Pro — Atualizar para última versão
 # Duplo clique para atualizar (o app reinicia sozinho)
 
 cd "$(dirname "$0")"
 
 echo ""
 echo "  ╔══════════════════════════════════════════╗"
-echo "  ║   CRAZYPRO RFA — Atualizar              ║"
+echo "  ║   EXIFBOOST PRO — Atualizar             ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo ""
 echo "  Baixando atualizações do GitHub..."

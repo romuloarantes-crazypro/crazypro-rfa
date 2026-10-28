@@ -1,5 +1,5 @@
 #!/bin/bash
-# CrazyPro RFA — Iniciar no Mac
+# ExifBoost Pro — Iniciar no Mac
 # Duplo clique para abrir
 
 # Vai para a pasta do script
@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo "  ╔══════════════════════════════════════════╗"
-echo "  ║   CRAZYPRO RFA — RFA Marketing Digital  ║"
+echo "  ║   EXIFBOOST PRO — RFA Marketing Digital ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo ""
 

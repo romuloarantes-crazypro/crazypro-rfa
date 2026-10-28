@@ -1,5 +1,5 @@
 ╔══════════════════════════════════════════════════════════════╗
-║        CRAZYPRO RFA — Guia de Edição (Windows)             ║
+║        EXIFBOOST PRO — Guia de Edição (Windows)            ║
 ╚══════════════════════════════════════════════════════════════╝
 
 PASTA DE INSTALAÇÃO: D:\CrazyPro-RFA\

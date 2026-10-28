@@ -10,11 +10,19 @@ app.secret_key = os.environ.get('SECRET_KEY', 'crazypro-rfa-2026')
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 UPLOAD_BASE = '/tmp/cp_uploads'
-MODELS_FILE = os.environ.get('CRAZYPRO_MODELS_FILE') or os.path.join(os.path.expanduser('~'), '.crazypro_rfa', 'models.json')
+APP_NAME = 'ExifBoost Pro'
+
+def _env(name, default=''):
+    # EXIFBOOST_* é o nome atual; CRAZYPRO_* continua valendo para instalações antigas
+    return os.environ.get('EXIFBOOST_' + name) or os.environ.get('CRAZYPRO_' + name) or default
+
+_home = os.path.expanduser('~')
+MODELS_FILE = _env('MODELS_FILE') or os.path.join(_home, '.exifboost_pro', 'models.json')
+OLD_HOME_MODELS_FILE = os.path.join(_home, '.crazypro_rfa', 'models.json')
 LEGACY_MODELS_FILE = '/tmp/cp_models.json'
-RETENTION_HOURS = float(os.environ.get('CRAZYPRO_RETENTION_HOURS', '24'))
-_contact = os.environ.get('CRAZYPRO_CONTACT', '').strip()
-NOMINATIM_UA = 'CrazyPro-RFA/1.0' + (f' ({_contact})' if _contact else '')
+RETENTION_HOURS = float(_env('RETENTION_HOURS', '24'))
+_contact = _env('CONTACT').strip()
+NOMINATIM_UA = 'ExifBoost-Pro/1.0' + (f' ({_contact})' if _contact else '')
 SUPPORTED = {'.jpg','.jpeg','.tiff','.tif','.dng','.nef','.raf','.crw','.raw','.png'}
 
 try:
@@ -77,8 +85,9 @@ def save_json(p, d):
     os.replace(tmp, p)
 
 def load_models():
-    if not os.path.exists(MODELS_FILE) and os.path.exists(LEGACY_MODELS_FILE):
-        return load_json(LEGACY_MODELS_FILE)
+    if not os.path.exists(MODELS_FILE):
+        for old in (OLD_HOME_MODELS_FILE, LEGACY_MODELS_FILE):
+            if os.path.exists(old): return load_json(old)
     return load_json(MODELS_FILE)
 
 def deg_to_dms(deg):
@@ -248,7 +257,7 @@ def build_full_xmp(meta):
   xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
   <xmp:Rating>{rating}</xmp:Rating>
   <xmp:BaseURL>{website}</xmp:BaseURL>
-  <xmp:CreatorTool>CrazyPro RFA</xmp:CreatorTool>
+  <xmp:CreatorTool>{APP_NAME}</xmp:CreatorTool>
 {xmp_create}  <xmp:ModifyDate>{now_iso}</xmp:ModifyDate>
   <xmp:MetadataDate>{now_iso}</xmp:MetadataDate>
  </rdf:Description>
@@ -391,7 +400,7 @@ def write_exif(src, meta, out_path):
                 except:
                     z[tag] = str(val).encode('latin-1', 'replace')
         # Software tag — authorship trail
-        z[piexif.ImageIFD.Software] = b'CrazyPro RFA'
+        z[piexif.ImageIFD.Software] = APP_NAME.encode('utf-8')
         # Windows Explorer tags (UTF-16LE) + UserComment, como o GeoSetter grava
         def _xp(s): return str(s).encode('utf-16le') + b'\x00\x00'
         kw_str=';'.join(k.strip() for k in (meta.get('keywords') or '').split(',') if k.strip())
@@ -522,7 +531,7 @@ def download_all(sid):
         for f in files:
             zf.write(os.path.join(out_dir,f), f)
     buf.seek(0)
-    return send_file(buf, as_attachment=True, download_name='crazypro_fotos.zip', mimetype='application/zip')
+    return send_file(buf, as_attachment=True, download_name='exifboost_fotos.zip', mimetype='application/zip')
 
 @app.route('/list_output/<sid>')
 def list_output(sid):
