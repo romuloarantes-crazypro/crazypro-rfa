@@ -7,3 +7,4 @@ uploads/
 # credenciais do Google (nunca versionar)
 client_secret*.json
 token_gbp.json
+.venv/

@@ -16,9 +16,14 @@ Ferramenta da **RFA Marketing Digital** para gravar metadados (EXIF, IPTC e XMP)
 
 ## Instalar no Mac
 
-1. Instale o Python 3 (python.org).
-2. Dê duplo clique em `INICIAR_MAC.command`. O app abre em `http://127.0.0.1:8080`.
-3. Para atualizar, dê duplo clique em `ATUALIZAR_MAC.command` e depois `CMD+R` no navegador.
+1. Instale o Python 3 em python.org (se ainda não tiver).
+2. Baixe o ZIP do projeto: `https://github.com/romuloarantes-crazypro/crazypro-rfa/archive/refs/heads/main.zip` e extraia a pasta onde quiser.
+3. Na primeira vez, o macOS bloqueia arquivos baixados da internet: clique com o botão direito em `INICIAR_MAC.command`, escolha **Abrir** e confirme **Abrir** de novo. Nas vezes seguintes basta dar duplo clique.
+   - Se aparecer "permissão negada", abra o Terminal na pasta e rode `chmod +x INICIAR_MAC.command ATUALIZAR_MAC.command`.
+4. Na primeira execução ele prepara um ambiente próprio e instala as dependências (cerca de 1 minuto, precisa de internet). O app abre em `http://127.0.0.1:8080`.
+5. Para atualizar: baixe o ZIP novo e substitua a pasta. Se você instalou com `git clone`, use `ATUALIZAR_MAC.command`. Seus modelos salvos ficam fora da pasta do projeto e não se perdem.
+
+O app abre só no seu computador. Para liberar para outros aparelhos da rede local, defina `EXIFBOOST_HOST=0.0.0.0` antes de iniciar (use apenas em rede de confiança).
 
 ## Instalar no Windows
 
@@ -34,7 +39,7 @@ pip install -r requirements.txt
 PORT=8080 python3 app.py
 ```
 
-Abra `http://localhost:8080`.
+Abra `http://localhost:8080`. Por padrão o app só aceita conexões do próprio computador.
 
 ## Versão online (opcional)
 

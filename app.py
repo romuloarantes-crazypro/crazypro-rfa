@@ -830,4 +830,5 @@ def health(): return jsonify({'status':'ok','version':'6.0'})
 
 if __name__=='__main__':
     port=int(os.environ.get('PORT',5000))
-    app.run(debug=False,host='0.0.0.0',port=port)
+    # Por padrão só este computador acessa o app. EXIFBOOST_HOST=0.0.0.0 libera para a rede local.
+    app.run(debug=False,host=_env('HOST','127.0.0.1'),port=port)
