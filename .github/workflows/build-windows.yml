@@ -3,7 +3,16 @@ name: Gerar ExifBoost-Pro.exe (Windows)
 on:
   workflow_dispatch:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths:
+      - 'app.py'
+      - 'icon_data.py'
+      - 'exifboost_launcher.py'
+      - 'requirements.txt'
+      - 'templates/**'
+      - 'static/**'
+      - '.github/smoke_test.py'
+      - '.github/workflows/build-windows.yml'
 
 permissions:
   contents: write
@@ -48,24 +57,24 @@ jobs:
           name: ExifBoost-Pro-Windows
           path: dist/ExifBoost-Pro.exe
 
-      - name: Publicar na página de Lançamentos (só quando há uma tag)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publicar na página de Lançamentos (só a partir da main, depois do teste passar)
+        if: github.ref == 'refs/heads/main'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cat > notas.md <<'EOF'
+          cat > notas.md <<EOF
           Instalador do **ExifBoost Pro** para Windows, sem precisar instalar o Python.
+          Versão mais recente, gerada a partir do commit \`${GITHUB_SHA::7}\`.
 
           **Como usar**
-          1. Baixe o arquivo `ExifBoost-Pro.exe` abaixo.
+          1. Baixe o arquivo \`ExifBoost-Pro.exe\` abaixo.
           2. Dê duplo clique. O app abre no navegador, em um endereço local (127.0.0.1).
           3. Para encerrar, feche a janela preta do programa.
 
           **Aviso do Windows:** como o arquivo não é assinado digitalmente, o Windows pode mostrar "O Windows protegeu o computador" (SmartScreen). Clique em **Mais informações** e depois em **Executar assim mesmo**. O antivírus também pode pedir confirmação.
 
-          Os modelos salvos ficam em `C:\Users\SEU-USUARIO\.exifboost_pro`.
+          Os modelos salvos ficam em \`C:\\Users\\SEU-USUARIO\\.exifboost_pro\`.
           EOF
-          flags=""
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then flags="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" dist/ExifBoost-Pro.exe --title "ExifBoost Pro $GITHUB_REF_NAME" --notes-file notas.md $flags
+          gh release delete windows-latest --cleanup-tag --yes || true
+          gh release create windows-latest dist/ExifBoost-Pro.exe --title "ExifBoost Pro para Windows (versão mais recente)" --notes-file notas.md --target "$GITHUB_SHA"
