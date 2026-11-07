@@ -27,6 +27,15 @@ O app abre só no seu computador. Para liberar para outros aparelhos da rede loc
 
 ## Instalar no Windows
 
+**Opção mais simples (não precisa instalar o Python):**
+
+1. Baixe o `ExifBoost-Pro.exe`: `https://github.com/romuloarantes-crazypro/crazypro-rfa/releases/download/windows-latest/ExifBoost-Pro.exe`
+2. Dê duplo clique. O app abre no navegador, em `http://127.0.0.1:8080`. Para encerrar, feche a janela preta.
+3. O arquivo não é assinado digitalmente, então o Windows pode mostrar "O Windows protegeu o computador". Clique em **Mais informações** e depois em **Executar assim mesmo**. O antivírus também pode pedir confirmação.
+4. Para atualizar, baixe o `.exe` de novo: ele é refeito automaticamente a cada mudança no app. Os modelos salvos ficam em `C:\Users\SEU-USUARIO\.exifboost_pro` e não se perdem.
+
+**Opção com Python (instala em uma pasta):**
+
 1. Instale o Python em python.org, marcando **Add Python to PATH**.
 2. Baixe o ZIP do projeto: `https://github.com/romuloarantes-crazypro/crazypro-rfa/archive/refs/heads/main.zip` e extraia.
 3. Dê duplo clique em `INSTALAR_WINDOWS.bat`. Ele instala em `D:\CrazyPro-RFA` (ou `C:\CrazyPro-RFA`, se não houver disco D) e cria o atalho **ExifBoost Pro** na Área de Trabalho.
