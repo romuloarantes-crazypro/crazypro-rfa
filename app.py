@@ -1,11 +1,13 @@
-import os, json, shutil, io, zipfile, uuid, re, time, threading, hmac
+import os, sys, json, shutil, io, zipfile, uuid, re, time, threading, hmac, tempfile
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, abort
 from werkzeug.utils import secure_filename
 from PIL import Image
 import piexif, requests as req
 from datetime import datetime, timedelta
 
-app = Flask(__name__)
+# Quando empacotado em .exe (PyInstaller), os arquivos ficam numa pasta temporária (_MEIPASS)
+_BASE = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+app = Flask(__name__, template_folder=os.path.join(_BASE, 'templates'), static_folder=os.path.join(_BASE, 'static'))
 
 APP_NAME = 'ExifBoost Pro'
 
@@ -56,7 +58,7 @@ app.config.update(
 )
 
 _home = os.path.expanduser('~')
-UPLOAD_BASE = _env('UPLOAD_DIR') or '/tmp/cp_uploads'
+UPLOAD_BASE = _env('UPLOAD_DIR') or os.path.join(tempfile.gettempdir(), 'exifboost_uploads')
 DATA_DIR = _env('DATA_DIR') or os.path.join(_home, '.exifboost_pro')
 MODELS_FILE = _env('MODELS_FILE') or os.path.join(DATA_DIR, 'models.json')
 OLD_HOME_MODELS_FILE = os.path.join(_home, '.crazypro_rfa', 'models.json')

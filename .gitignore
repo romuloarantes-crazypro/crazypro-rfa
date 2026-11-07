@@ -8,3 +8,7 @@ uploads/
 client_secret*.json
 token_gbp.json
 .venv/
+build/
+dist/
+*.spec
+icon.ico
